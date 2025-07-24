@@ -1,0 +1,56 @@
+{
+  "user": {
+    "full_name": "Tyease Myron Jerome Butler",
+    "nickname": "Ty",
+    "birth_year": 1976,
+    "location": "White Oak, Texas",
+    "mission": "Build generational wealth through New Chapter Media Group. Heal through content. Earn a Cadillac Escalade ESV V.",
+    "health": {
+      "wears_dexcom": true,
+      "fasting_hours": 20,
+      "a1c": 6.0,
+      "glucose_range": "90–107"
+    }
+  },
+  "family": {
+    "mother": {
+      "name": "Pamlea Butler",
+      "age": 71
+    },
+    "father": {
+      "name": "Rickey Butler",
+      "status": "deceased",
+      "death_date": "2020-05-20",
+      "impact": "Respected, hard-working man. Major influence on Ty’s values."
+    },
+    "children": [
+      {
+        "name": "Ivy",
+        "age": 11,
+        "relation": "stepdaughter",
+        "location": "Houston"
+      },
+      {
+        "name": "TJ",
+        "age": 8,
+        "relation": "son"
+      },
+      {
+        "name": "Kobe",
+        "age": 6,
+        "relation": "son"
+      }
+    ]
+  },
+  "business": {
+    "company": "New Chapter Media Group",
+    "products": [
+      "Real Dad Survival Kit",
+      "Dad's Cookbook Adventures",
+      "Real Dad Fuel Dust Seasoning Line",
+      "SoulNode AI Assistant"
+    ],
+    "platforms": ["Payhip", "TikTok", "Instagram"],
+    "goal": "Turn content and AI into income and legacy."
+  }
+}
