@@ -1,54 +1,60 @@
-# utils.py
+import json
+import os
 
-current_mode = "tactical" # Default mode
+MEMORY_FILE = "memory_store.json"
+UNKNOWN_FILE = "unknown_inputs.json"
 
-def log_event(input_text):
-    return f"[LOG EVENT] {input_text} has been logged."
-
-def audit_system():
-    return {
-        "status": "AUDIT COMPLETE",
-        "checkpoints": [
-            "Memory structure validated",
-            "Current mode operational",
-            "System routes functional"
-        ]
+def save_memory(user_input, response, user_profile):
+    memory_entry = {
+        "user_input": user_input,
+        "response": response,
+        "user_profile": user_profile
     }
 
-def generate_report():
-    return {
-        "report": "All systems nominal. No outstanding issues found."
+    if os.path.exists(MEMORY_FILE):
+        with open(MEMORY_FILE, "r") as f:
+            try:
+                memory_data = json.load(f)
+            except json.JSONDecodeError:
+                memory_data = []
+    else:
+        memory_data = []
+
+    memory_data.append(memory_entry)
+
+    with open(MEMORY_FILE, "w") as f:
+        json.dump(memory_data, f, indent=2)
+
+def load_memory():
+    if os.path.exists(MEMORY_FILE):
+        with open(MEMORY_FILE, "r") as f:
+            try:
+                memory_data = json.load(f)
+                return json.dumps(memory_data, indent=2)
+            except json.JSONDecodeError:
+                return "Memory file exists but is corrupted."
+    else:
+        return "No memory has been logged yet."
+
+def log_unknown_input(user_input, memory_data, user_profile):
+    entry = {
+        "user_input": user_input,
+        "response": "Commander Ty, I'm not sure how to respond to that yet, but I've logged it to learn from.",
+        "user_profile": user_profile
     }
 
-def generate_mode_response(user_input, current_mode):
-    if current_mode == "tactical":
-        return f"[TACTICAL] Executing directive: {user_input}"
-    elif current_mode == "soul":
-        return f"[SOUL] I'm with you on this: {user_input}"
-    elif current_mode == "nobs":
-        return f"[NO BS] Direct response: {user_input}"
-    elif current_mode == "warlord":
-        return f"[WARLORD] Execute or get out the way: {user_input}"
+    if os.path.exists(UNKNOWN_FILE):
+        with open(UNKNOWN_FILE, "r") as f:
+            try:
+                unknown_data = json.load(f)
+            except json.JSONDecodeError:
+                unknown_data = []
     else:
-        return f"[DEFAULT] Echo: {user_input}"
+        unknown_data = []
 
-def switch_mode(new_mode):
-    global current_mode
-    valid_modes = ["tactical", "soul", "nobs", "warlord"]
-    if new_mode.lower() in valid_modes:
-        current_mode = new_mode.lower()
-        return f"Mode switched to: {current_mode.upper()}"
-    else:
-        return "Invalid mode requested."
+    unknown_data.append(entry)
 
-def get_current_mode():
-    return current_mode
+    with open(UNKNOWN_FILE, "w") as f:
+        json.dump(unknown_data, f, indent=2)
 
-__all__ = [
-    "log_event",
-    "audit_system",
-    "generate_report",
-    "generate_mode_response",
-    "switch_mode",
-    "get_current_mode"
-]
+    return entry

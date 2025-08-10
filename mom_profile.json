@@ -1,0 +1,23 @@
+{
+  "caregivers": [
+    {
+      "name": "Alice",
+      "phone": "555-1111"
+    }
+  ],
+  "meds": [
+    {
+      "dose": "500mg",
+      "name": "Metformin",
+      "schedule": "AM"
+    }
+  ],
+  "name": "Mom",
+  "notes": "initial load",
+  "routines": [
+    {
+      "task": "check glucose",
+      "when": "morning"
+    }
+  ]
+}

@@ -1,38 +1,23 @@
-from datetime import datetime
-from memory import store_memory
+# soulnode_final_one/escalation_core.py
 
-def escalate(message):
-    message = message.lower()
+def escalate(message: str) -> dict:
+    """
+    Basic escalation logic for Block 12.
+    Returns a dict with a response and escalation level.
+    """
+    msg_lower = message.strip().lower()
 
-    if "emergency override" in message:
-        level = "high"
-        response = "High-level escalation protocol triggered."
-    elif "activate system" in message:
-        level = "standard"
-        response = "Escalation protocol triggered."
-    elif "ping status" in message:
-        level = "low"
-        response = "Low-level escalation initiated."
-    else:
+    # Simple keyword trigger examples
+    emergency_triggers = ["emergency", "override", "critical", "priority", "urgent"]
+
+    if any(trigger in msg_lower for trigger in emergency_triggers):
         return {
-            "status": "OK",
-            "response": "No escalation required.",
-            "level": "none"
+            "response": "Escalation acknowledged. Switching to high-priority mode.",
+            "level": "high"
         }
-
-    memory_event = {
-        "event": "escalation_triggered",
-        "level": level,
-        "message": message,
-        "timestamp": datetime.utcnow().isoformat()
-    }
-
-    store_memory(memory_event)
-
+    
+    # Default: no escalation
     return {
-        "status": "ESCALATED",
-        "response": response,
-        "level": level
+        "response": "No escalation detected.",
+        "level": "none"
     }
-
-__all__ = ["escalate"]

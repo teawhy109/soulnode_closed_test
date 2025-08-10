@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SoulNode</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #chat-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fff;
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 20px;
+        }
+        #user-input {
+            width: 100%;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SoulNode</h1>
+    <div id="chat-box"></div>
+    <input type="text" id="user-input" placeholder="Type your message here..." />
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="clearChat()">Clear Chat</button>
+
+    <script>
+        function sendMessage() {
+            const inputBox = document.getElementById('user-input');
+            const userMessage = inputBox.value;
+            if (!userMessage) return;
+
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
+            inputBox.value = '';
+
+            fetch(`/get?msg=${encodeURIComponent(userMessage)}`)
+                .then(response => response.text())
+                .then(botResponse => {
+                    chatBox.innerHTML += `<p><strong>SoulNode:</strong> ${botResponse}</p>`;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                });
+        }
+
+        function clearChat() {
+            document.getElementById('chat-box').innerHTML = '';
+        }
+
+        document.getElementById('user-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

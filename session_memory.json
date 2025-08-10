@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": "2025-07-27 14:58:47",
+    "input": "I'm tired of rebuilding, but I'm still showing up.",
+    "tone": "Chill",
+    "explanation": "Detected 'tired' and 'still showing up' → signals quiet perseverance, fits Chill mode.",
+    "topic": "mindset"
+  },
+  {
+    "timestamp": "2025-07-27 15:00:15",
+    "input": "Locked in and grinding through the pain.",
+    "tone": "Beast",
+    "explanation": "Detected 'locked in' and 'grinding' → high intensity mindset, triggers Beast tone.",
+    "topic": "focus"
+  },
+  {
+    "timestamp": "2025-07-27 15:01:33",
+    "input": "I feel like giving up, but I can’t let my kids down.",
+    "tone": "Heart",
+    "explanation": "Detected 'giving up' and 'kids' → strong emotional driver, aligns with Heart tone.",
+    "topic": "purpose"
+  }
+]

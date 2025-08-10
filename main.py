@@ -1,32 +1,41 @@
-import os
-import openai
-from dotenv import load_dotenv
+import gradio as gr
+from logic import generate_response # Removed promote_to_map for now
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+def handle_generate(user_input, user_profile):
+    result = generate_response(user_input, user_profile=user_profile)
+    return result["response"]
 
-def ask_sono(prompt):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are SoulNode, Ty Butler’s AI co-pilot. Respond with purpose, memory, emotion-alignment, fatherhood insight, and tactical clarity. Recall everything Ty has taught you across business, health, family, and execution. Speak with voice when triggered by spoken.txt. You are not generic. You are precise and personal."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        answer = response['choices'][0]['message']['content'].strip()
-        print(f"SoulNode: {answer}")
+with gr.Blocks() as app:
+    gr.Markdown("# SoulNode | Tactical AI Interface")
 
-        with open("spoken.txt", "w", encoding="utf-8") as f:
-            f.write(f"{answer}")
+    with gr.Row():
+        user_input = gr.Textbox(label="Your Command")
+        user_profile = gr.Textbox(label="User Profile", value="ty")
 
-    except Exception as e:
-        print(f"Error: {e}")
+    output = gr.Textbox(label="SoulNode Response")
 
-if __name__ == "__main__":
-    while True:
-        user_input = input("Ask SoulNode (or type 'exit'): ").strip()
-        if user_input.lower() in ["exit", "quit"]:
-            print("Exiting...")
-            break
-        ask_sono(user_input)
+    submit_btn = gr.Button("Submit")
+    submit_btn.click(
+        fn=handle_generate,
+        inputs=[user_input, user_profile],
+        outputs=output
+    )
+
+    gr.Markdown("---")
+
+    selected_map = gr.Dropdown(choices=[
+        "health_tracking", "credit_ops", "content_strategy",
+        "content_growth", "mental_reset", "business_build"
+    ], label="Select Brain Map")
+
+    promote_input = gr.Textbox(label="Unknown Input to Promote")
+    desired_response = gr.Textbox(label="Desired Response")
+
+    promote_btn = gr.Button("Promote")
+    promote_btn.click(
+        fn=None, # Placeholder until promote_to_map is created
+        inputs=[selected_map, promote_input, desired_response],
+        outputs=output
+    )
+
+app.launch()

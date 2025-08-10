@@ -1,11 +1,17 @@
 import requests
 import os
+from dotenv import load_dotenv
 
-def generate_voice_response(text, api_key, voice_id):
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"
+load_dotenv()
+
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+VOICE_ID = os.getenv("VOICE_ID")
+
+def generate_speech(text):
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
 
     headers = {
-        "xi-api-key": api_key,
+        "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json"
     }
 
@@ -14,16 +20,13 @@ def generate_voice_response(text, api_key, voice_id):
         "model_id": "eleven_monolingual_v1",
         "voice_settings": {
             "stability": 0.4,
-            "similarity_boost": 0.8,
-            "style": 0.65,
-            "use_speaker_boost": True
+            "similarity_boost": 0.8
         }
     }
 
     response = requests.post(url, json=payload, headers=headers)
 
-    if response.status_code == 200:
-        return response.content # Audio bytes
-    else:
-        print("ElevenLabs Error:", response.status_code, response.text)
-        return None
+    if response.status_code != 200:
+        raise Exception(f"ElevenLabs error: {response.text}")
+
+    return response.content

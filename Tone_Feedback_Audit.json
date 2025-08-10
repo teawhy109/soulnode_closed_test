@@ -1,0 +1,10 @@
+[
+  {
+    "input": "I feel like I'm drowning under pressure",
+    "predicted": "Beast",
+    "reason": "No specific trigger found. Defaulting to Beast tone.",
+    "correct": "Heart",
+    "status": "incorrect",
+    "timestamp": "2025-07-27T17:58:41.924593"
+  }
+]

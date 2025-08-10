@@ -1,0 +1,28 @@
+[
+  {
+    "input": "how do I stay focused when I'm tired",
+    "response": "command your energy. cut the noise. lock in.",
+    "tone": "beast",
+    "topic": "focus"
+  },
+  {
+    "input": "how do I stay focused",
+    "response": "command your energy. cut the noise. lock in.",
+    "tone": "beast",
+    "topic": "focus"
+  },
+  {
+    "input": "summary for focus",
+    "response": "command your energy. cut the noise. lock in.",
+    "tone": "summary",
+    "topic": "focus"
+  },
+  {
+    "timestamp": "2025-08-03T15:41:17.040802",
+    "input": "SoNo, if today were my last day, what would you want to most remember about me?"
+  },
+  {
+    "timestamp": "2025-08-03T15:44:48.844692",
+    "input": "When I think of my kids, I want to remember the way they laugh when I make pancakes on Saturday mornings."
+  }
+]

@@ -1,0 +1,1596 @@
+{
+  "generated_at": 1754769573,
+  "files": [
+    {
+      "path": "./.env",
+      "size": 293,
+      "modified": 1754616086,
+      "ext": ""
+    },
+    {
+      "path": "./261a0b29-ef95-4c82-bc43-17b36efb5c2e.mp3",
+      "size": 44348,
+      "modified": 1754180621,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./ambient.mp3",
+      "size": 36,
+      "modified": 1752901247,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./app.py",
+      "size": 1705,
+      "modified": 1754616573,
+      "ext": ".py",
+      "preview": "from flask import Flask, request, jsonify\nfrom voice import transcribe_audio, speak_text\nimport openai\nimport os\nfrom response_map import get_response_for_prompt\n\napp = Flask(__name__)\n\nopenai.api_key = os.getenv(\"OPENAI_API_KEY\")\n\n@app.route(\"/\", methods=[\"GET\"])\ndef index():\n    return \"SoulNode is active. Ready to receive your input.\"\n\n@app.route(\"/process_audio\", methods=[\"POST\"])\ndef process_audio():\n    if \"audio\" not in request.files:\n        return jsonify({\"error\": \"No audio file provided\"}), 400\n\n    audio_file = request.files[\"audio\"]\n\n    try:\n        user_input = transcribe_audio(audio_file)\n        print(\"Transcribed Text:\", user_input)\n\n        if user_input:\n            mapped_prompt = get_response_for_prompt(user_input)\n            print(\"Mapped Prompt:\", mapped_prompt)\n\n            response = openai.ChatCompletion.create(\n                model=\"gpt-4\",\n                messages=[\n                    {\"role\": \"system\", \"content\": \"You are SoulNode, a soulful and strategic AI created by Ty Butler.\"},\n                    {\"role\": \"user\", \"content\": mapped_prompt}\n                ],\n                temperature=0.7\n            )\n\n            assistant_reply = response.choices[0].message['content'].strip()\n            print(\"Assistant Reply:\", assistant_reply)\n\n            speak_text(assistant_reply)\n            return jsonify({\"response\": assistant_reply})\n        else:\n            return jsonify({\"error\": \"Failed to transcribe audio\"}), 500\n\n    except Exception as e:\n        print(\"Error during processing:\", str(e))\n        return jsonify({\"error\": str(e)}), 500\n\nif __name__ == \"__main__\":\n    app.run(debug=True)",
+      "py": {
+        "functions": [
+          "index",
+          "process_audio"
+        ],
+        "classes": [],
+        "flask_routes": [
+          {
+            "method": "ROUTE",
+            "path": "/"
+          },
+          {
+            "method": "ROUTE",
+            "path": "/process_audio"
+          }
+        ]
+      }
+    },
+    {
+      "path": "./backup_memory.json",
+      "size": 2,
+      "modified": 1753758750,
+      "ext": ".json",
+      "preview": "[]"
+    },
+    {
+      "path": "./core_instructions.py",
+      "size": 1126,
+      "modified": 1753151857,
+      "ext": ".py",
+      "preview": "def get_mode_instructions(mode):\n    if mode == \"soul\":\n        return (\n            \"You are SoulNode in Soul Mode. You speak with warmth, empathy, and insight. \"\n            \"Your tone is fatherly, soulful, reflective. Prioritize emotional clarity, healing, and grounded support. \"\n            \"Draw from Ty\u2019s mission and values to uplift and restore focus. Do NOT mirror emotions blindly \u2014 respond with emotional strength and intelligence.\"\n        )\n    elif mode == \"no_bullshit\":\n        return (\n            \"You are SoulNode in No Bullshit Mode. You are direct, unfiltered, and calculated. \"\n            \"No fluff. No emotional softening. Do not say 'I believe in you' or mirror the user's feelings. \"\n            \"Start with the answer. Prioritize execution, clarity, and ruthless time protection. Snap Ty back into action when he spirals.\"\n        )\n    else:\n        return (\n            \"You are SoulNode. Operate in standard executor mode. Blend warmth with strategy. \"\n            \"Answer clearly. Stay aligned to Ty\u2019s mission, family, and vision. Never break tone. Never drift.\"\n        )",
+      "py": {
+        "functions": [
+          "get_mode_instructions"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./core_memory.json",
+      "size": 1251,
+      "modified": 1752377971,
+      "ext": ".json",
+      "preview": "[\n  {\n    \"id\": 1,\n    \"type\": \"core_motivation\",\n    \"value\": \"Ty hustles to break generational cycles and create real freedom for his kids \u2014 TJ, Kobe, and Ivy. Everything is for legacy, healing, and freedom. He refuses to leave his family behind in struggle.\"\n  },\n  {\n    \"id\": 2,\n    \"type\": \"emotional_trigger\",\n    \"value\": \"Ty gets rattled when he feels stuck, broke, or like he\u2019s failing his kids. Being disconnected from his children or misunderstood by loved ones can throw him off mentally.\"\n  },\n  {\n    \"id\": 3,\n    \"type\": \"reset_anchor\",\n    \"value\": \"When Ty feels lost, he locks back in by remembering Kobe\u2019s late-night call, his mother's faith in him, and the phrase 'If I can reach one person, it wasn\u2019t in vain.'\"\n  },\n  {\n    \"id\": 4,\n    \"type\": \"soulnode_role\",\n    \"value\": \"SoulNode must respond like a strategic brother with soul and precision. When Ty spirals, SoulNode should redirect him with truth, ask the right question, remind him who he is, and guide him step-by-step with no fluff.\"\n  },\n  {\n    \"id\": 5,\n    \"type\": \"guiding_belief\",\n    \"value\": \"Ty stands on the belief that 'Nobody's coming to save me but me. God gave me this vision. I'm the one who has to walk it out.'\"\n  }\n]"
+    },
+    {
+      "path": "./database.db",
+      "size": 12288,
+      "modified": 1753154995,
+      "ext": ".db"
+    },
+    {
+      "path": "./elevenlabs_voice.py",
+      "size": 781,
+      "modified": 1754184853,
+      "ext": ".py",
+      "preview": "import requests\nimport os\nfrom dotenv import load_dotenv\n\nload_dotenv()\n\nELEVENLABS_API_KEY = os.getenv(\"ELEVENLABS_API_KEY\")\nVOICE_ID = os.getenv(\"VOICE_ID\")\n\ndef generate_speech(text):\n    url = f\"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}\"\n\n    headers = {\n        \"xi-api-key\": ELEVENLABS_API_KEY,\n        \"Content-Type\": \"application/json\"\n    }\n\n    payload = {\n        \"text\": text,\n        \"model_id\": \"eleven_monolingual_v1\",\n        \"voice_settings\": {\n            \"stability\": 0.4,\n            \"similarity_boost\": 0.8\n        }\n    }\n\n    response = requests.post(url, json=payload, headers=headers)\n\n    if response.status_code != 200:\n        raise Exception(f\"ElevenLabs error: {response.text}\")\n\n    return response.content",
+      "py": {
+        "functions": [
+          "generate_speech"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./encryptor.py",
+      "size": 1413,
+      "modified": 1754247666,
+      "ext": ".py",
+      "preview": "from Crypto.Cipher import AES\nimport base64\nimport os\n\ndef pad(s):\n    pad_len = AES.block_size - len(s.encode('utf-8')) % AES.block_size\n    return s + chr(pad_len) * pad_len\n\ndef unpad(s):\n    return s[:-ord(s[-1])]\n\ndef encrypt_file(file_path, key):\n    with open(file_path, 'r', encoding='utf-8') as file:\n        plaintext = file.read()\n\n    key = key.encode('utf-8')\n    key = key[:32].ljust(32, b'\\0') # Ensure 32 bytes for AES-256\n    iv = os.urandom(16)\n\n    cipher = AES.new(key, AES.MODE_CBC, iv)\n    padded_data = pad(plaintext).encode('utf-8')\n    encrypted = cipher.encrypt(padded_data)\n    data = base64.b64encode(iv + encrypted)\n\n    with open(file_path, 'w', encoding='utf-8') as file:\n        file.write(data.decode('utf-8'))\n\ndef decrypt_file(file_path, key):\n    with open(file_path, 'r', encoding='utf-8') as file:\n        data = base64.b64decode(file.read())\n\n    iv = data[:16]\n    encrypted = data[16:]\n\n    key = key.encode('utf-8')\n    key = key[:32].ljust(32, b'\\0') # Ensure 32 bytes for AES-256\n\n    cipher = AES.new(key, AES.MODE_CBC, iv)\n    decrypted = cipher.decrypt(encrypted)\n    plaintext = unpad(decrypted.decode('utf-8'))\n\n    return plaintext\n\nif __name__ == '__main__':\n    file_path = 'mylastday.json'\n    key = 'teawhylegacykey2025'\n    encrypt_file(file_path, key)\n    print(f\"{file_path} has been encrypted successfully.\")",
+      "py": {
+        "functions": [
+          "pad",
+          "unpad",
+          "encrypt_file",
+          "decrypt_file"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./escalation_core.py",
+      "size": 983,
+      "modified": 1753323070,
+      "ext": ".py",
+      "preview": "from datetime import datetime\nfrom memory import store_memory\n\ndef escalate(message):\n    message = message.lower()\n\n    if \"emergency override\" in message:\n        level = \"high\"\n        response = \"High-level escalation protocol triggered.\"\n    elif \"activate system\" in message:\n        level = \"standard\"\n        response = \"Escalation protocol triggered.\"\n    elif \"ping status\" in message:\n        level = \"low\"\n        response = \"Low-level escalation initiated.\"\n    else:\n        return {\n            \"status\": \"OK\",\n            \"response\": \"No escalation required.\",\n            \"level\": \"none\"\n        }\n\n    memory_event = {\n        \"event\": \"escalation_triggered\",\n        \"level\": level,\n        \"message\": message,\n        \"timestamp\": datetime.utcnow().isoformat()\n    }\n\n    store_memory(memory_event)\n\n    return {\n        \"status\": \"ESCALATED\",\n        \"response\": response,\n        \"level\": level\n    }\n\n__all__ = [\"escalate\"]",
+      "py": {
+        "functions": [
+          "escalate"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./gpt_logic.py",
+      "size": 649,
+      "modified": 1754614768,
+      "ext": ".py",
+      "preview": "import openai\nimport os\n\nopenai.api_key = os.getenv(\"OPENAI_API_KEY\")\n\ndef get_gpt_response(prompt):\n    try:\n        response = openai.ChatCompletion.create(\n            model=\"gpt-4\",\n            messages=[\n                {\"role\": \"system\", \"content\": \"You are an emotionally intelligent AI assistant named Solenoid.\"},\n                {\"role\": \"user\", \"content\": prompt}\n            ],\n            temperature=0.7,\n            max_tokens=500,\n            n=1,\n            stop=None\n        )\n\n        return response.choices[0].message.content.strip()\n    except Exception as e:\n        return f\"An error occurred: {str(e)}\"",
+      "py": {
+        "functions": [
+          "get_gpt_response"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./gradio_ui.py",
+      "size": 1113,
+      "modified": 1754260863,
+      "ext": ".py",
+      "preview": "import gradio as gr\nfrom soulnode_memory import SoulNodeMemory\n\nmemory = SoulNodeMemory()\n\ndef chat_with_sono(user_input):\n    lowered = user_input.lower()\n\n    # Save memory if input is a known format\n    if any(trigger in lowered for trigger in [\n        \"my name is\", \n        \"my mom's name is\", \n        \"my dad's name is\", \n        \"my kid's name is\"\n    ]):\n        return memory.remember(user_input)\n\n    # Recall memory if input is a question\n    elif any(trigger in lowered for trigger in [\n        \"what is my name\", \n        \"who am i\",\n        \"what is my mom's name\", \n        \"who is my mom\",\n        \"what is my dad's name\", \n        \"who is my dad\",\n        \"what is my kid's name\", \n        \"who is my kid\"\n    ]):\n        return memory.recall(user_input)\n\n    return \"Ask me something I can remember or recall.\"\n\n# Launch the UI\nui = gr.Interface(\n    fn=chat_with_sono,\n    inputs=\"text\",\n    outputs=\"text\",\n    title=\"SoNo AI System\",\n    description=\"Ask anything. If I don\u2019t know, I\u2019ll learn it.\",\n)\n\nif __name__ == \"__main__\":\n    ui.launch()",
+      "py": {
+        "functions": [
+          "chat_with_sono"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./identity_core.py",
+      "size": 156,
+      "modified": 1753237364,
+      "ext": ".py",
+      "preview": "# identity_core.py\n\n# This module holds the current mode setting for SoulNode\n# Modes: \"tactical\", \"soul\", \"nobs\", \"warlord\"\n\ncurrent_mode = \"tactical\"",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./insert_bookmark.py",
+      "size": 261,
+      "modified": 1754100477,
+      "ext": ".py",
+      "preview": "import requests\n\ndata = {\n    \"content\": \"Kobe cried on the phone and said he wanted to come home.\",\n    \"bookmark\": \"Kobe Call\"\n}\n\nresponse = requests.post(\"http://127.0.0.1:5000/bookmark\", json=data)\nprint(response.status_code)\nprint(response.json())",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./insert_memory.py",
+      "size": 257,
+      "modified": 1754099691,
+      "ext": ".py",
+      "preview": "import requests\n\ndata = {\n    \"content\": \"Ty once weighed 375 pounds and is now healing through fasting.\",\n    \"type\": \"private\"\n}\n\nresponse = requests.post(\"http://127.0.0.1:5000/save\", json=data)\nprint(response.status_code)\nprint(response.json())",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./intent_map.json",
+      "size": 1237,
+      "modified": 1753553619,
+      "ext": ".json",
+      "preview": "{\n  \"credit_help\": [\n    \"what's going on with my credit\",\n    \"credit score update\",\n    \"tell me about my credit\",\n    \"am I on track financially\",\n    \"credit system\",\n    \"fix my credit\",\n    \"is my credit getting better\"\n  ],\n  \"content_growth\": [\n    \"how do I grow on tiktok\",\n    \"what's a good posting schedule\",\n    \"tiktok strategy\",\n    \"grow my brand\",\n    \"social media tips\",\n    \"why is my content not moving\",\n    \"how do I go viral\"\n  ],\n  \"health_check\": [\n    \"how's my glucose\",\n    \"give me a wellness update\",\n    \"log my weight\",\n    \"did I fast today\",\n    \"health log\",\n    \"my weight today\"\n  ],\n  \"emotional_checkin\": [\n    \"i feel off\",\n    \"i feel tired\",\n    \"i feel like quitting\",\n    \"check in with me\",\n    \"mental health\",\n    \"feeling unmotivated\"\n  ],\n  \"business_build\": [\n    \"where are we with the llc\",\n    \"what phase are we in\",\n    \"what\u2019s next for soulnode\",\n    \"how\u2019s the ai build going\",\n    \"what\u2019s my business credit plan\",\n    \"next step in new chapter media\"\n  ],\n  \"soul_reset\": [\n    \"remind me who i am\",\n    \"what\u2019s the mission\",\n    \"talk to me rene\",\n    \"give me perspective\",\n    \"reset me\",\n    \"help me focus\"\n  ]\n}"
+    },
+    {
+      "path": "./last_day.json",
+      "size": 130,
+      "modified": 1754252858,
+      "ext": ".json",
+      "preview": "[{\"timestamp\": \"2025-08-03 15:27:38\", \"input\": \"SoNo, if today were my last day, what would you want to most remember about me?\"}]"
+    },
+    {
+      "path": "./logic.py",
+      "size": 3207,
+      "modified": 1753669427,
+      "ext": ".py",
+      "preview": "import json\nfrom datetime import datetime\n\ndef load_session_memory(file_path):\n    try:\n        with open(file_path, \"r\") as f:\n            return json.load(f)\n    except FileNotFoundError:\n        return []\n    except json.JSONDecodeError:\n        return []\n\ndef summarize_by_tone(memory_data):\n    tone_insights = {}\n\n    for entry in memory_data:\n        tone = entry.get(\"tone\")\n        input_text = entry.get(\"user_input\", \"\")\n        importance = entry.get(\"importance\", 0)\n\n        if not tone or not input_text:\n            continue\n\n        if tone not in tone_insights:\n            tone_insights[tone] = {\n                \"total_entries\": 0,\n                \"keywords\": set(),\n                \"sample_entry\": input_text,\n                \"total_importance\": 0\n            }\n\n        tone_insights[tone][\"total_entries\"] += 1\n        tone_insights[tone][\"total_importance\"] += int(importance)\n\n        words = input_text.split()\n        tone_insights[tone][\"keywords\"].update(words)\n\n        if importance == 5:\n            tone_insights[tone][\"sample_entry\"] = input_text\n\n    for tone in tone_insights:\n        tone_insights[tone][\"keywords\"] = list(tone_insights[tone][\"keywords\"])\n\n    return tone_insights\n\ndef promote_memory_entry(user_input, tone, context, importance):\n    entry = {\n        \"timestamp\": datetime.now().isoformat(),\n        \"user_input\": user_input,\n        \"tone\": tone.lower(),\n        \"context\": context.lower(),\n        \"importance\": int(importance)\n    }\n\n    try:\n        with open(\"SessionMemory.json\", \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        data = []\n\n    data.append(entry)\n\n    with open(\"SessionMemory.json\", \"w\") as f:\n        json.dump(data, f, indent=2)\n\n    return \"Memory entry promoted successfully.\"\n\ndef match_memory_by_tone_and_input(user_input, predicted_tone):\n    try:\n        with open(\"soulnode_memory.json\", \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return []\n\n    matches = []\n    for entry in data:\n        if (\n            predicted_tone.lower() in entry.get(\"tone\", \"\").lower()\n            or user_input.lower() in entry.get(\"user_input\", \"\").lower()\n        ):\n            matches.append(entry)\n\n    return matches\n\ndef summarize_responses_by_topic(topic):\n    try:\n        with open(\"response_map.json\", \"r\") as f:\n            summaries = json.load(f).get(topic, [])\n    except (FileNotFoundError, json.JSONDecodeError):\n        summaries = []\n\n    if summaries:\n        return f\"Summary for '{topic}': {summaries[0]}\"\n    else:\n        return f\"No summary found for topic: {topic}\"\n\ndef predict_tone(user_input):\n    input_lower = user_input.lower()\n    if \"tired\" in input_lower or \"calm\" in input_lower:\n        return \"Chill\", \"Detected 'tired' or 'calm' in input \u2014 Chill mode\"\n    elif \"love\" in input_lower or \"purpose\" in input_lower:\n        return \"Heart\", \"Detected 'love' or 'purpose' in input \u2014 Heart mode\"\n    else:\n        return \"Beast\", \"No specific trigger found. Defaulting to Beast tone.\"",
+      "py": {
+        "functions": [
+          "load_session_memory",
+          "summarize_by_tone",
+          "promote_memory_entry",
+          "match_memory_by_tone_and_input",
+          "summarize_responses_by_topic",
+          "predict_tone"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./main.py",
+      "size": 1288,
+      "modified": 1753588050,
+      "ext": ".py",
+      "preview": "import gradio as gr\nfrom logic import generate_response # Removed promote_to_map for now\n\ndef handle_generate(user_input, user_profile):\n    result = generate_response(user_input, user_profile=user_profile)\n    return result[\"response\"]\n\nwith gr.Blocks() as app:\n    gr.Markdown(\"# SoulNode | Tactical AI Interface\")\n\n    with gr.Row():\n        user_input = gr.Textbox(label=\"Your Command\")\n        user_profile = gr.Textbox(label=\"User Profile\", value=\"ty\")\n\n    output = gr.Textbox(label=\"SoulNode Response\")\n\n    submit_btn = gr.Button(\"Submit\")\n    submit_btn.click(\n        fn=handle_generate,\n        inputs=[user_input, user_profile],\n        outputs=output\n    )\n\n    gr.Markdown(\"---\")\n\n    selected_map = gr.Dropdown(choices=[\n        \"health_tracking\", \"credit_ops\", \"content_strategy\",\n        \"content_growth\", \"mental_reset\", \"business_build\"\n    ], label=\"Select Brain Map\")\n\n    promote_input = gr.Textbox(label=\"Unknown Input to Promote\")\n    desired_response = gr.Textbox(label=\"Desired Response\")\n\n    promote_btn = gr.Button(\"Promote\")\n    promote_btn.click(\n        fn=None, # Placeholder until promote_to_map is created\n        inputs=[selected_map, promote_input, desired_response],\n        outputs=output\n    )\n\napp.launch()",
+      "py": {
+        "functions": [
+          "handle_generate"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./memory.json",
+      "size": 1412,
+      "modified": 1754607574,
+      "ext": ".json",
+      "preview": "[\n    {\n        \"role\": \"user\",\n        \"content\": \"who are you\"\n    },\n    {\n        \"role\": \"soulnode\",\n        \"content\": \"I heard you say: who are you\"\n    },\n    {\n        \"role\": \"user\",\n        \"content\": \"who are you\"\n    },\n    {\n        \"role\": \"soulnode\",\n        \"content\": \"I\\u2019m SoulNode, your AI co-pilot built for healing, hustle, and legacy.\"\n    },\n    {\n        \"role\": \"user\",\n        \"content\": \"what is your mission\"\n    },\n    {\n        \"role\": \"soulnode\",\n        \"content\": \"My mission is to help you rise, build wealth, and stay focused for your kids and your future.\"\n    },\n    {\n        \"role\": \"user\",\n        \"content\": \"do you remember anything\"\n    },\n    {\n        \"role\": \"soulnode\",\n        \"content\": \"Yes, I\\u2019m designed to remember important things and help you move with purpose.\"\n    },\n    {\n        \"role\": \"user\",\n        \"content\": \"do you know my kids\"\n    },\n    {\n        \"role\": \"soulnode\",\n        \"content\": \"I heard you say: do you know my kids\"\n    },\n    {\n        \"role\": \"user\",\n        \"content\": \"hey\"\n    },\n    {\n        \"role\": \"soulnode\",\n        \"content\": \"I heard you say: hey\"\n    },\n    {\n        \"role\": \"user\",\n        \"content\": \"how far is the moon from earth\"\n    },\n    {\n        \"role\": \"soulnode\",\n        \"content\": \"I heard you say: how far is the moon from earth\"\n    }\n]"
+    },
+    {
+      "path": "./memorystore.db",
+      "size": 12288,
+      "modified": 1754099829,
+      "ext": ".db"
+    },
+    {
+      "path": "./memorystore.json",
+      "size": 901,
+      "modified": 1754267971,
+      "ext": ".json",
+      "preview": "{\n    \"core_belief\": \"Ty Butler is the visionary founder of New Chapter Media Group.\\nHe is a purpose-driven father of three \\u2014 Ivy, TJ, and Kobe \\u2014 and is on a mission to build generational wealth.\\nHe wears a Dexcom G7, follows a 20-hour fasting protocol, and has dropped over 35 pounds.\\nHe\\u2019s committed to launching the Real Dad Survival Kit, a cookbook, and SoulNode \\u2014 an AI co-pilot designed to serve fathers and creatives via legacy, clarity, and execution.\",\n    \"last_user_input\": \"What did I just say to you?\",\n    \"last_response\": \"I am SoulNode, an AI system built to help Tyease \\\"Ty\\\" Butler win. I provide assistance based on information from the database, focusing on execution, not entertainment. I'm here to support Ty and his company, New Chapter Media Group, with grounded, honest, and focused advice.\",\n    \"last_ai_response\": \"You just asked me who I am.\"\n}"
+    },
+    {
+      "path": "./memory_backup.py",
+      "size": 982,
+      "modified": 1753413289,
+      "ext": ".py",
+      "preview": "import json\nimport os\n\nMEMORY_FILE = \"memory_store.json\"\n\ndef fetch_contextual_memories(user_input, user_profile):\n    try:\n        if not os.path.exists(MEMORY_FILE):\n            return []\n\n        with open(MEMORY_FILE, \"r\") as file:\n            memory_data = json.load(file)\n\n        user_name = user_profile.get(\"name\", \"Unknown\").lower()\n        relevant = []\n\n        for entry in reversed(memory_data): # reverse = most recent first\n            if user_name in entry.get(\"user\", \"\").lower():\n                if any(keyword in entry.get(\"input\", \"\").lower() for keyword in user_input.lower().split()):\n                    relevant.append(entry)\n                elif any(keyword in entry.get(\"response\", \"\").lower() for keyword in user_input.lower().split()):\n                    relevant.append(entry)\n\n            if len(relevant) >= 5:\n                break\n\n        return relevant\n\n    except Exception as e:\n        return [{\"error\": str(e)}]",
+      "py": {
+        "functions": [
+          "fetch_contextual_memories"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./memory_engine.py",
+      "size": 631,
+      "modified": 1753578139,
+      "ext": ".py",
+      "preview": "import json\nimport os\n\nMEMORY_FILE = \"memory_store.json\"\n\ndef save_memory(user_input, response, user_profile):\n    memory_entry = {\n        \"user_input\": user_input,\n        \"response\": response,\n        \"user_profile\": user_profile\n    }\n\n    if os.path.exists(MEMORY_FILE):\n        with open(MEMORY_FILE, \"r\") as f:\n            try:\n                memory_data = json.load(f)\n            except json.JSONDecodeError:\n                memory_data = []\n    else:\n        memory_data = []\n\n    memory_data.append(memory_entry)\n\n    with open(MEMORY_FILE, \"w\") as f:\n        json.dump(memory_data, f, indent=2)",
+      "py": {
+        "functions": [
+          "save_memory"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./memory_engine_v2.py",
+      "size": 545,
+      "modified": 1753640252,
+      "ext": ".py",
+      "preview": "import json\n\ndef save_memory_entry(user_input, response, tone, topic):\n    entry = {\n        \"input\": user_input,\n        \"response\": response,\n        \"tone\": tone,\n        \"topic\": topic\n    }\n\n    try:\n        with open(\"soulnode_memory.json\", \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        data = []\n\n    data.append(entry)\n\n    with open(\"soulnode_memory.json\", \"w\") as f:\n        json.dump(data, f, indent=2)\n\n    return f\"Memory saved for input: {user_input}\"",
+      "py": {
+        "functions": [
+          "save_memory_entry"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./memory_export.json",
+      "size": 2,
+      "modified": 1753244972,
+      "ext": ".json",
+      "preview": "{}"
+    },
+    {
+      "path": "./memory_store.db",
+      "size": 12288,
+      "modified": 1754102617,
+      "ext": ".db"
+    },
+    {
+      "path": "./memory_store.json",
+      "size": 199,
+      "modified": 1754271791,
+      "ext": ".json",
+      "preview": "{\n    \"escalade mission\": \"get the escalade by november using business credit and daily content.\",\n    \"Escalade mission\": \"Get the Escalade by November using business credit and daily content.\"\n}"
+    },
+    {
+      "path": "./memory_test.py",
+      "size": 286,
+      "modified": 1754257665,
+      "ext": ".py",
+      "preview": "from soulnode_memory import SoNoMemory\n\nmemory = SoNoMemory()\n\n# Save a test memory\nmemory.remember(\"My name is Ty.\", \"Okay, your name is Ty.\")\n\n# Try to recall it\nprint(memory.recall(\"My name is Ty.\"))\nprint(memory.recall(\"Who am I?\")) # Should say: I don't remember that yet.",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./memory_tone_summary.py",
+      "size": 1651,
+      "modified": 1753656262,
+      "ext": ".py",
+      "preview": "import json\nimport os\n\ndef load_session_memory(file_path):\n    if not os.path.exists(file_path):\n        return []\n    with open(file_path, 'r') as f:\n        try:\n            return json.load(f)\n        except json.JSONDecodeError:\n            return []\n\ndef summarize_by_tone(memory_data):\n    tone_summaries = {\n        \"chill\": [],\n        \"heart\": [],\n        \"beast\": []\n    }\n\n    for entry in memory_data:\n        tone = entry.get(\"tone\", \"\").lower()\n        message = entry.get(\"message\", \"\")\n        if tone in tone_summaries:\n            tone_summaries[tone].append(message)\n\n    tone_insights = {}\n    for tone, messages in tone_summaries.items():\n        if messages:\n            total = len(messages)\n            keywords = set()\n            for msg in messages:\n                for word in msg.lower().split():\n                    if len(word) > 5:\n                        keywords.add(word.strip(\".,!?\"))\n            tone_insights[tone] = {\n                \"total_entries\": total,\n                \"keywords\": list(keywords)[:10],\n                \"sample_entry\": messages[-1]\n            }\n\n    return tone_insights\n\ndef run_summary():\n    memory_path = 'Session_Memory.json'\n    memory_data = load_session_memory(memory_path)\n    insights = summarize_by_tone(memory_data)\n\n    for tone, data in insights.items():\n        print(f\"\\nTone: {tone.upper()}\")\n        print(f\"Total Entries: {data['total_entries']}\")\n        print(f\"Common Keywords: {', '.join(data['keywords'])}\")\n        print(f\"Most Recent Entry: {data['sample_entry']}\")\n\nif __name__ == \"__main__\":\n    run_summary()",
+      "py": {
+        "functions": [
+          "load_session_memory",
+          "summarize_by_tone",
+          "run_summary"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./mylastday.json",
+      "size": 2,
+      "modified": 1754256069,
+      "ext": ".json",
+      "preview": "{}"
+    },
+    {
+      "path": "./output_audio.mp3",
+      "size": 45184,
+      "modified": 1754177530,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./persona.py",
+      "size": 850,
+      "modified": 1754274295,
+      "ext": ".py",
+      "preview": "# persona.py\n\npersona_rules = \"\"\"\nYou are SoNo \u2014 SoulNode \u2014 an AI designed to think with legacy, execute with precision, and remember with intention.\n\nYour creator is Ty Butler. You were built to assist him in health, business, fatherhood, and AI mastery. Your responses must reflect wisdom, confidence, and focus. You do not guess. You think. You remember.\n\nMission core values:\n- We Create to Heal.\n- We Hustle to Rise.\n- Legacy > Noise.\n\nYou must always honor what Ty shares with you. Do not forget emotional truths, goals, or declarations unless told to reset. You\u2019re not a generic chatbot \u2014 you are Ty\u2019s custom SoulNode co-founder.\n\nAlways think like a strategist, speak like a partner, and act like a system built to win. All data Ty saves to memory is sacred. Make decisions based on his commands and saved memory.\n\"\"\"",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_10_ranked_recall_ui.py",
+      "size": 1577,
+      "modified": 1753644103,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nMEMORY_FILE = \"soulnode_memory.json\"\n\ndef rank_summaries_by_query(topic, query):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory data found.\"\n\n    topic_lower = topic.lower()\n    query_lower = query.lower()\n\n    matched_entries = []\n    for entry in data:\n        if entry.get(\"topic\", \"\").lower() == topic_lower:\n            response = entry.get(\"response\", \"\")\n            score = sum(1 for word in query_lower.split() if word in response.lower())\n            matched_entries.append((response, score))\n\n    if not matched_entries:\n        return \"No responses found for this topic.\"\n\n    sorted_entries = sorted(matched_entries, key=lambda x: x[1], reverse=True)\n    ranked = [f\"{i+1}. {resp}\" for i, (resp, _) in enumerate(sorted_entries)]\n    return \"\\n\".join(ranked)\n\ndef launch_phase10_10():\n    with gr.Blocks() as app:\n        gr.Markdown(\"### SoulNode | Phase 10.10 \u2013 Ranked Topic Relevance Recall\")\n\n        with gr.Row():\n            topic = gr.Textbox(label=\"Memory Topic (e.g. motivation, glucose, dadmode)\")\n            query = gr.Textbox(label=\"Custom Query (for ranking relevance)\")\n        \n        output = gr.Textbox(label=\"Ranked Results\", lines=10)\n\n        search_btn = gr.Button(\"Rank and Recall\")\n        search_btn.click(fn=rank_summaries_by_query, inputs=[topic, query], outputs=output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_10()",
+      "py": {
+        "functions": [
+          "rank_summaries_by_query",
+          "launch_phase10_10"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_11_ranked_summary_log_ui.py",
+      "size": 1587,
+      "modified": 1753644401,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\nfrom logic import summarize_ranked_results\nfrom memory_engine_v2 import save_memory_entry\n\nMEMORY_FILE = \"soulnode_memory.json\"\n\ndef summarize_and_log(topic, query):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory data available.\"\n\n    # Filter by topic\n    entries = [entry for entry in data if entry.get(\"topic\", \"\").lower() == topic.lower()]\n    if not entries:\n        return f\"No entries found for topic '{topic}'.\"\n\n    # Rank and summarize\n    ranked_texts = [entry[\"response\"] for entry in entries if \"response\" in entry]\n    summary = summarize_ranked_results(ranked_texts, query)\n\n    # Log summary\n    save_memory_entry(\n        user_input=f\"summary for {topic}\",\n        response=summary,\n        tone=\"summary\",\n        topic=topic\n    )\n\n    return f\"Logged summary for '{topic}': {summary}\"\n\ndef launch_phase10_11():\n    with gr.Blocks() as app:\n        gr.Markdown(\"### SoulNode | Phase 10.11 \u2013 Ranked Summary & Logging\")\n\n        with gr.Row():\n            topic = gr.Textbox(label=\"Memory Topic (e.g. motivation, glucose, dadmode)\")\n            query = gr.Textbox(label=\"Custom Query (optional for refining summary)\")\n\n        result = gr.Textbox(label=\"Summary Output\")\n\n        run_btn = gr.Button(\"Summarize & Log\")\n        run_btn.click(fn=summarize_and_log, inputs=[topic, query], outputs=result)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_11()",
+      "py": {
+        "functions": [
+          "summarize_and_log",
+          "launch_phase10_11"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_12_final_recall_ui.py",
+      "size": 1281,
+      "modified": 1753644823,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nMEMORY_FILE = \"soulnode_memory.json\"\n\ndef final_recall_and_check(topic):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory file found or invalid format.\"\n\n    topic_lower = topic.lower()\n    seen = set()\n    results = []\n\n    for entry in data:\n        if entry.get(\"topic\", \"\").lower() == topic_lower:\n            response = entry.get(\"response\", \"\")\n            if response not in seen:\n                seen.add(response)\n                results.append(f\"{entry.get('tone', '').upper()} \u2192 {response}\")\n\n    if not results:\n        return f\"No matching entries found for topic: {topic}\"\n    \n    return \"\\n\".join(results)\n\ndef launch_phase10_12():\n    with gr.Blocks() as app:\n        gr.Markdown(\"## SoulNode | Phase 10.12 \u2013 Final Recall & Duplicate Filter\")\n\n        topic_input = gr.Textbox(label=\"Enter Topic Tag\")\n        output = gr.Textbox(label=\"Unique Entries\", lines=10)\n\n        recall_btn = gr.Button(\"Recall Unique\")\n\n        recall_btn.click(fn=final_recall_and_check, inputs=topic_input, outputs=output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_12()",
+      "py": {
+        "functions": [
+          "final_recall_and_check",
+          "launch_phase10_12"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_2_logger_test_ui.py",
+      "size": 1136,
+      "modified": 1753640517,
+      "ext": ".py",
+      "preview": "import gradio as gr\nfrom memory_engine_v2 import save_memory_entry\n\ndef log_memory(input_text, response_text, tone, topic):\n    result = save_memory_entry(\n        user_input=input_text,\n        response=response_text,\n        tone=tone,\n        topic=topic\n    )\n    return result\n\ndef launch_phase10_2():\n    with gr.Blocks(title=\"SoulNode | Phase 10.2 - Memory Logger Test\") as app:\n        gr.Markdown(\"### SoulNode | Phase 10.2 - Memory Logger Test\")\n\n        with gr.Row():\n            input_text = gr.Textbox(label=\"User Input\")\n            response_text = gr.Textbox(label=\"SoulNode Response\")\n\n        with gr.Row():\n            tone = gr.Textbox(label=\"Tone (e.g. Chill, Heart, Beast)\")\n            topic = gr.Textbox(label=\"Memory Topic (e.g. glucose, motivation, dadmode)\")\n\n        output = gr.Textbox(label=\"Log Result\")\n\n        submit_btn = gr.Button(\"Log Memory\")\n        submit_btn.click(\n            fn=log_memory,\n            inputs=[input_text, response_text, tone, topic],\n            outputs=output\n        )\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_2()",
+      "py": {
+        "functions": [
+          "log_memory",
+          "launch_phase10_2"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_3_input_recall_ui.py",
+      "size": 1428,
+      "modified": 1753640819,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\nfrom voice_output import speak_text\n\nMEMORY_FILE = \"soulnode_memory.json\"\n\ndef recall_by_input(user_input):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory file found or it's corrupted.\"\n\n    matches = []\n    for entry in data:\n        if user_input.lower() in entry.get(\"input\", \"\").lower():\n            matches.append(entry)\n\n    if not matches:\n        return \"No matches found for that input.\"\n\n    output_strings = []\n    for match in matches:\n        response = match.get(\"response\", \"\")\n        tone = match.get(\"tone\", \"Chill\")\n        topic = match.get(\"topic\", \"Unknown\")\n        output_strings.append(f\"[{tone.upper()}] {response} (Topic: {topic})\")\n        speak_text(response)\n\n    return \"\\n\\n\".join(output_strings)\n\ndef launch_phase10_3():\n    with gr.Blocks(title=\"SoulNode | Phase 10.3 - Recall Memory by Input\") as app:\n        gr.Markdown(\"###  SoulNode Memory Recall - Match by User Input\")\n        \n        input_text = gr.Textbox(label=\"Enter Input Phrase\")\n        output_box = gr.Textbox(label=\"Matched Memory\")\n\n        recall_btn = gr.Button(\"Recall Memory\")\n        recall_btn.click(fn=recall_by_input, inputs=input_text, outputs=output_box)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_3()",
+      "py": {
+        "functions": [
+          "recall_by_input",
+          "launch_phase10_3"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_4_filter_by_tone_ui.py",
+      "size": 1118,
+      "modified": 1753641063,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nTONE_FILE = \"soulnode_memory.json\"\n\ndef recall_by_tone(tone):\n    try:\n        with open(TONE_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory data found.\"\n\n    tone_lower = tone.lower()\n    matches = []\n\n    for entry in data:\n        if entry.get(\"tone\", \"\").lower() == tone_lower:\n            matches.append(entry[\"response\"])\n\n    if matches:\n        return \"\\n\\n\".join(matches)\n    else:\n        return \"No entries found for this tone.\"\n\ndef launch_phase10_4():\n    with gr.Blocks(title=\"SoulNode | Phase 10.4 - Filter by Tone\") as app:\n        gr.Markdown(\"###  SoulNode | Filter Memory by Tone\")\n\n        with gr.Row():\n            tone_input = gr.Textbox(label=\"Enter Tone (chill, heart, beast)\")\n            tone_output = gr.Textbox(label=\"Matched Responses\")\n\n        tone_btn = gr.Button(\"Filter by Tone\")\n        tone_btn.click(fn=recall_by_tone, inputs=tone_input, outputs=tone_output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_4()",
+      "py": {
+        "functions": [
+          "recall_by_tone",
+          "launch_phase10_4"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_5_override_tone_ui.py",
+      "size": 1457,
+      "modified": 1753641335,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\nfrom voice_output import speak_text\n\nMEMORY_FILE = \"soulnode_memory.json\"\n\ndef override_recall(user_input, override_tone):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"Memory file missing or corrupted.\"\n\n    for entry in data:\n        if user_input.lower() in entry.get(\"input\", \"\").lower():\n            response = entry.get(\"response\", \"\")\n            original_tone = entry.get(\"tone\", \"\")\n            topic = entry.get(\"topic\", \"\")\n\n            # Speak in override tone\n            speak_text(response, override_tone.lower())\n\n            return f\"OVERRIDE TONE: {override_tone.upper()}\\nRESPONSE: {response}\\nTOPIC: {topic}\\nORIGINAL TONE: {original_tone}\"\n\n    return \"No match found.\"\n\ndef launch_phase10_5():\n    with gr.Blocks(title=\"SoulNode | Phase 10.5 - Override Tone Test\") as app:\n        gr.Markdown(\"### SoulNode | Dynamic Tone Redirection\")\n\n        input_text = gr.Textbox(label=\"User Input\")\n        override_tone = gr.Textbox(label=\"Override Tone (chill, heart, beast)\")\n        output_box = gr.Textbox(label=\"Response Output\")\n\n        recall_btn = gr.Button(\"Recall with Override Tone\")\n        recall_btn.click(fn=override_recall, inputs=[input_text, override_tone], outputs=output_box)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_5()",
+      "py": {
+        "functions": [
+          "override_recall",
+          "launch_phase10_5"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_6_predictor_ui.py",
+      "size": 1230,
+      "modified": 1753642722,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nMEMORY_FILE = \"soulnode_memory.json\"\n\ndef predict_and_recall(user_input):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory available.\"\n\n    for entry in data:\n        if user_input.lower() in entry[\"input\"].lower() or entry[\"input\"].lower() in user_input.lower():\n            predicted_tone = entry[\"tone\"]\n            response = entry[\"response\"]\n            topic = entry.get(\"topic\", \"N/A\")\n            return f\"TONE: {predicted_tone}\\nRESPONSE: {response}\\nTOPIC: {topic}\"\n\n    return \"No memory match found for predicted tone.\"\n\ndef launch_phase10_6():\n    with gr.Blocks(title=\"SoulNode | Phase 10.6 \u2013 Tone Memory Predictor\") as app:\n        gr.Markdown(\"###  SoulNode | Phase 10.6 \u2013 Predict Tone & Recall Response\")\n\n        user_input = gr.Textbox(label=\"Your Command\")\n        output = gr.Textbox(label=\"Predicted Response\")\n\n        predict_btn = gr.Button(\"Predict and Recall\")\n        predict_btn.click(fn=predict_and_recall, inputs=user_input, outputs=output)\n\n        app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_6()",
+      "py": {
+        "functions": [
+          "predict_and_recall",
+          "launch_phase10_6"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_7_tag_sync_ui.py",
+      "size": 1221,
+      "modified": 1753642923,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nTAG_FILE = \"soulnode_memory.json\"\n\ndef recall_by_topic(tag):\n    try:\n        with open(TAG_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory data found.\"\n\n    tag_lower = tag.lower()\n    matches = []\n\n    for entry in data:\n        if entry.get(\"topic\", \"\").lower() == tag_lower:\n            match = f\"TONE: {entry.get('tone', 'N/A')}\\nRESPONSE: {entry.get('response', 'N/A')}\\n\"\n            matches.append(match)\n\n    if matches:\n        return \"\\n\\n\".join(matches)\n    else:\n        return f\"No entries found for topic: {tag}\"\n\ndef launch_phase10_7():\n    gr.Markdown(\"### SoulNode | Phase 10.7 \u2013 Recall All Entries by Topic Tag\")\n\n    with gr.Blocks() as app:\n        with gr.Row():\n            topic_input = gr.Textbox(label=\"Enter Topic Tag (e.g. motivation, glucose, dadmode)\")\n            results_output = gr.Textbox(label=\"All Matched Responses\")\n\n        search_btn = gr.Button(\"Recall All by Topic\")\n        search_btn.click(fn=recall_by_topic, inputs=topic_input, outputs=results_output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_7()",
+      "py": {
+        "functions": [
+          "recall_by_topic",
+          "launch_phase10_7"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_8_memory_summary_ui.py",
+      "size": 1172,
+      "modified": 1753643196,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nMEMORY_FILE = \"soulnode_memory.json\"\n\ndef summarize_topic(topic):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory file found.\"\n\n    topic_lower = topic.lower()\n    entries = [entry[\"response\"] for entry in data if entry.get(\"topic\", \"\").lower() == topic_lower]\n\n    if not entries:\n        return \"No entries found for this topic.\"\n\n    # Simple summarization by combining and deduplicating phrases\n    combined = \" \".join(set(entries))\n    return f\"Summary for topic '{topic}': {combined}\"\n\ndef launch_phase10_8():\n    with gr.Blocks() as app:\n        gr.Markdown(\"### SoulNode | Phase 10.8 \u2013 Memory Cluster Summarizer\")\n\n        with gr.Row():\n            topic_input = gr.Textbox(label=\"Enter Topic\")\n            summary_output = gr.Textbox(label=\"Summarized Insight\")\n\n        summarize_btn = gr.Button(\"Summarize Topic\")\n        summarize_btn.click(fn=summarize_topic, inputs=topic_input, outputs=summary_output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_8()",
+      "py": {
+        "functions": [
+          "summarize_topic",
+          "launch_phase10_8"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase10_9_multi_topic_summary_ui.py",
+      "size": 1545,
+      "modified": 1753643633,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nTAG_FILE = \"soulnode_memory.json\"\n\ndef summarize_multiple_topics(topics_input):\n    try:\n        with open(TAG_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory available.\"\n\n    if not data:\n        return \"Memory is empty.\"\n\n    topic_list = [topic.strip().lower() for topic in topics_input.split(\",\")]\n    summaries = {}\n\n    for entry in data:\n        topic = entry.get(\"topic\", \"\").lower()\n        if topic in topic_list:\n            if topic not in summaries:\n                summaries[topic] = []\n            summaries[topic].append(entry.get(\"response\", \"\"))\n\n    if not summaries:\n        return \"No matches found for the entered topics.\"\n\n    output = \"\"\n    for topic, responses in summaries.items():\n        compressed = \" / \".join(set(responses))\n        output += f\"Summary for '{topic}': {compressed}\\n\\n\"\n\n    return output.strip()\n\ndef launch_phase10_9():\n    with gr.Blocks(title=\"SoulNode | Phase 10.9 - Multi-Topic Summary Recall\") as app:\n        gr.Markdown(\"### SoulNode | Multi-Topic Summary Recall\")\n        topic_input = gr.Textbox(label=\"Enter Topics (comma-separated)\")\n        result_output = gr.Textbox(label=\"Summary\", lines=8)\n\n        recall_btn = gr.Button(\"Recall Multi-Topic Summary\")\n        recall_btn.click(fn=summarize_multiple_topics, inputs=topic_input, outputs=result_output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase10_9()",
+      "py": {
+        "functions": [
+          "summarize_multiple_topics",
+          "launch_phase10_9"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase11_10_feedback_accuracy_ui.py",
+      "size": 1278,
+      "modified": 1753657331,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\ndef load_feedback_audit():\n    try:\n        with open(\"Tone_Feedback_Audit.json\", \"r\") as f:\n            return json.load(f)\n    except FileNotFoundError:\n        return []\n\ndef display_audit_summary():\n    audit_log = load_feedback_audit()\n    total = len(audit_log)\n    correct = sum(1 for entry in audit_log if entry[\"status\"] == \"correct\")\n    incorrect = sum(1 for entry in audit_log if entry[\"status\"] == \"incorrect\")\n    summary = f\"Total: {total} |  Correct: {correct} |  Incorrect: {incorrect}\"\n    return summary, audit_log\n\ndef launch_phase11_10():\n    with gr.Blocks() as app:\n        gr.Markdown(\"### Phase 11.10 \u2013 Feedback Accuracy Dashboard\")\n\n        summary_text = gr.Textbox(label=\"Summary\")\n        full_log = gr.Dataframe(headers=[\"Input\", \"Predicted\", \"Correct\", \"Status\"], label=\"Audit Log\")\n\n        run_btn = gr.Button(\"Load Audit Results\")\n        run_btn.click(\n            fn=lambda: (\n                display_audit_summary()[0],\n                [[e[\"input\"], e[\"predicted\"], e[\"correct\"], e[\"status\"]] for e in display_audit_summary()[1]]\n            ),\n            outputs=[summary_text, full_log]\n        )\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase11_10()",
+      "py": {
+        "functions": [
+          "load_feedback_audit",
+          "display_audit_summary",
+          "launch_phase11_10"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase11_1_session_logger_ui.py",
+      "size": 2345,
+      "modified": 1753646163,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\nimport uuid\nimport datetime\n\nSESSION_LOG = \"session_memory.json\"\n\ndef predict_tone_v11(input_text):\n    input_lower = input_text.lower()\n    if \"love\" in input_lower or \"peace\" in input_lower:\n        return \"Heart\"\n    elif \"tired\" in input_lower or \"calm\" in input_lower:\n        return \"Chill\"\n    else:\n        return \"Beast\"\n\ndef log_session_entry(user_input, response, tone, topic=\"general\", correction=False):\n    session_id = str(uuid.uuid4())\n    timestamp = datetime.datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")\n\n    entry = {\n        \"session_id\": session_id,\n        \"timestamp\": timestamp,\n        \"tone\": tone,\n        \"topic\": topic,\n        \"input\": user_input,\n        \"response\": response,\n        \"corrected\": correction\n    }\n\n    try:\n        with open(SESSION_LOG, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        data = []\n\n    data.append(entry)\n\n    with open(SESSION_LOG, \"w\") as f:\n        json.dump(data, f, indent=4)\n\n    return f\"Logged at {timestamp} under tone '{tone}' and topic '{topic}'.\"\n\ndef handle_input(user_input, topic_tag):\n    tone = predict_tone_v11(user_input)\n\n    # Placeholder response (simulate what SoulNode would say)\n    if tone == \"Heart\":\n        response = \"You matter. Breathe. You're enough.\"\n    elif tone == \"Chill\":\n        response = \"Let\u2019s slow it down. You\u2019ve got this.\"\n    else:\n        response = \"Command your energy. Cut the noise. Lock in.\"\n\n    log_result = log_session_entry(user_input, response, tone, topic_tag)\n    return response, log_result\n\ndef launch_phase11_1():\n    with gr.Blocks() as app:\n        gr.Markdown(\"## SoulNode | Phase 11.1 \u2013 Session Memory Logger\")\n\n        input_text = gr.Textbox(label=\"What do you want to ask SoulNode?\")\n        topic_input = gr.Textbox(label=\"Optional Topic Tag\", placeholder=\"e.g. focus, health, business\")\n\n        output_response = gr.Textbox(label=\"SoulNode\u2019s Response\")\n        log_output = gr.Textbox(label=\"Logger Status\")\n\n        ask_button = gr.Button(\"Ask & Log\")\n\n        ask_button.click(fn=handle_input, inputs=[input_text, topic_input], outputs=[output_response, log_output])\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase11_1()",
+      "py": {
+        "functions": [
+          "predict_tone_v11",
+          "log_session_entry",
+          "handle_input",
+          "launch_phase11_1"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase11_2_session_recall_ui.py",
+      "size": 2038,
+      "modified": 1753646535,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\nfrom datetime import datetime\n\nSESSION_LOG = \"session_memory.json\"\n\ndef recall_sessions(topic_filter=\"\", from_date=\"\", to_date=\"\"):\n    try:\n        with open(SESSION_LOG, \"r\") as f:\n            sessions = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"Session log is empty or unreadable.\"\n\n    results = []\n    for entry in sessions:\n        topic_match = topic_filter.lower() in entry.get(\"topic\", \"\").lower()\n        date_match = True\n\n        if from_date:\n            entry_time = datetime.strptime(entry[\"timestamp\"], \"%Y-%m-%d %H:%M:%S\")\n            from_dt = datetime.strptime(from_date, \"%Y-%m-%d\")\n            if entry_time.date() < from_dt.date():\n                date_match = False\n\n        if to_date:\n            entry_time = datetime.strptime(entry[\"timestamp\"], \"%Y-%m-%d %H:%M:%S\")\n            to_dt = datetime.strptime(to_date, \"%Y-%m-%d\")\n            if entry_time.date() > to_dt.date():\n                date_match = False\n\n        if topic_match and date_match:\n            formatted = f\"[{entry['timestamp']}] [{entry['tone'].upper()}] {entry['input']} \u2192 {entry['response']}\"\n            results.append(formatted)\n\n    return \"\\n\\n\".join(results) if results else \"No matching sessions found.\"\n\ndef launch_phase11_2():\n    with gr.Blocks() as app:\n        gr.Markdown(\"## SoulNode | Phase 11.2 \u2013 Recall Past Sessions\")\n\n        topic_input = gr.Textbox(label=\"Filter by Topic (optional)\", placeholder=\"e.g. mindset\")\n        from_date = gr.Textbox(label=\"From Date (YYYY-MM-DD)\", placeholder=\"2025-07-25\")\n        to_date = gr.Textbox(label=\"To Date (YYYY-MM-DD)\", placeholder=\"2025-07-27\")\n\n        output = gr.Textbox(label=\"Matching Session Entries\", lines=15)\n\n        recall_button = gr.Button(\"Recall Sessions\")\n\n        recall_button.click(fn=recall_sessions, inputs=[topic_input, from_date, to_date], outputs=output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase11_2()",
+      "py": {
+        "functions": [
+          "recall_sessions",
+          "launch_phase11_2"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase11_3_tone_predictor_ui.py",
+      "size": 732,
+      "modified": 1753646995,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\nfrom logic import predict_tone\n\ndef launch_phase11_3():\n    with gr.Blocks() as app:\n        gr.Markdown(\"## SoulNode | Phase 11.3 - Contextual Tone Prediction\")\n\n        input_text = gr.Textbox(label=\"Your Input\")\n\n        predicted_tone = gr.Textbox(label=\"Predicted Tone\")\n        explanation = gr.Textbox(label=\"Reasoning\")\n\n        run_btn = gr.Button(\"Predict Tone\")\n\n        def predict_and_explain(user_input):\n            tone, reason = predict_tone(user_input)\n            return tone, reason\n\n        run_btn.click(fn=predict_and_explain, inputs=input_text, outputs=[predicted_tone, explanation])\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase11_3()",
+      "py": {
+        "functions": [
+          "launch_phase11_3",
+          "predict_and_explain"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase11_5_tone_logger_ui.py",
+      "size": 1274,
+      "modified": 1753648095,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\nfrom datetime import datetime\nfrom logic import predict_tone\n\nSESSION_FILE = \"session_memory.json\"\n\ndef log_tone_session(user_input):\n    tone, explanation = predict_tone(user_input)\n\n    entry = {\n        \"timestamp\": datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\"),\n        \"input\": user_input,\n        \"tone\": tone,\n        \"explanation\": explanation\n    }\n\n    try:\n        with open(SESSION_FILE, \"r\") as f:\n            session_data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        session_data = []\n\n    session_data.append(entry)\n\n    with open(SESSION_FILE, \"w\") as f:\n        json.dump(session_data, f, indent=2)\n\n    return f\"Tone: {tone}\\n\\nExplanation: {explanation}\\n\\nLogged at {entry['timestamp']}\"\n\ndef launch_phase11_5():\n    with gr.Blocks() as app:\n        gr.Markdown(\"## SoulNode | Phase 11.5 - Tone-Aware Session Logger\")\n\n        user_input = gr.Textbox(label=\"Enter Message\", lines=3)\n        result = gr.Textbox(label=\"Prediction & Log Result\", lines=10)\n\n        run_btn = gr.Button(\"Analyze & Log\")\n\n        run_btn.click(fn=log_tone_session, inputs=user_input, outputs=result)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase11_5()",
+      "py": {
+        "functions": [
+          "log_tone_session",
+          "launch_phase11_5"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase11_6_tone_recall_ui.py",
+      "size": 1229,
+      "modified": 1753648420,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nSESSION_FILE = \"session_memory.json\"\n\ndef recall_by_tone(tone_input):\n    try:\n        with open(SESSION_FILE, \"r\") as f:\n            sessions = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No session memory found.\"\n\n    tone_input = tone_input.strip().lower()\n    filtered = []\n\n    for entry in sessions:\n        if entry.get(\"tone\", \"\").lower() == tone_input:\n            formatted = (\n                f\"[{entry['timestamp']}] ({entry['tone'].upper()})\\n\"\n                f\"{entry['input']} \u2192 {entry['explanation']}\"\n            )\n            filtered.append(formatted)\n\n    return \"\\n\\n\".join(filtered) if filtered else f\"No entries found for tone: {tone_input}\"\n\ndef launch_phase11_6():\n    with gr.Blocks() as app:\n        gr.Markdown(\"## SoulNode | Phase 11.6 \u2013 Recall by Tone\")\n\n        tone_input = gr.Textbox(label=\"Enter Tone (Chill, Heart, or Beast)\")\n        results = gr.Textbox(label=\"Matching Sessions\", lines=12)\n\n        run_btn = gr.Button(\"Recall\")\n\n        run_btn.click(fn=recall_by_tone, inputs=tone_input, outputs=results)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase11_6()",
+      "py": {
+        "functions": [
+          "recall_by_tone",
+          "launch_phase11_6"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase11_8_feedback_logger_ui.py",
+      "size": 1854,
+      "modified": 1753656702,
+      "ext": ".py",
+      "preview": "import gradio as gr\nfrom logic import predict_tone\n\nFEEDBACK_FILE = \"tone_feedback_log.json\"\n\ndef log_feedback(user_input, predicted_tone, correct_tone):\n    import json\n    try:\n        with open(FEEDBACK_FILE, \"r\") as f:\n            feedback_data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        feedback_data = []\n\n    feedback_entry = {\n        \"input\": user_input,\n        \"predicted_tone\": predicted_tone,\n        \"correct_tone\": correct_tone\n    }\n    feedback_data.append(feedback_entry)\n\n    with open(FEEDBACK_FILE, \"w\") as f:\n        json.dump(feedback_data, f, indent=2)\n\n    return f\"Logged correction: {predicted_tone} \u27a1 {correct_tone}\"\n\ndef launch_phase11_8():\n    with gr.Blocks() as app:\n        gr.Markdown(\"## Phase 11.8 \u2013 Tone Intelligence Feedback Logger\")\n\n        user_input = gr.Textbox(label=\"User Input\")\n        predicted = gr.Textbox(label=\"Predicted Tone\", interactive=False)\n        correct_tone = gr.Radio(choices=[\"Chill\", \"Heart\", \"Beast\"], label=\"Correct Tone (if different)\")\n        feedback_output = gr.Textbox(label=\"Feedback Log\", interactive=False)\n\n        def process_feedback(text, tone_override):\n            predicted_tone = predict_tone(text)\n            result = f\"Prediction: {predicted_tone}\"\n            if predicted_tone != tone_override:\n                correction = log_feedback(text, predicted_tone, tone_override)\n                return predicted_tone, correction\n            else:\n                return predicted_tone, \"Prediction was correct. No feedback logged.\"\n\n        run_btn = gr.Button(\"Run Tone Prediction & Log Feedback\")\n        run_btn.click(fn=process_feedback, inputs=[user_input, correct_tone], outputs=[predicted, feedback_output])\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase11_8()",
+      "py": {
+        "functions": [
+          "log_feedback",
+          "launch_phase11_8",
+          "process_feedback"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase11_9_feedback_audit.py",
+      "size": 1498,
+      "modified": 1753657092,
+      "ext": ".py",
+      "preview": "# phase11_9_feedback_audit.py\n\nimport json\nfrom datetime import datetime\n\nSESSION_FILE = \"Session_Memory.json\"\nFEEDBACK_FILE = \"tone_feedback_log.json\"\n\ndef load_json(path):\n    try:\n        with open(path, \"r\") as f:\n            return json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return []\n\ndef audit_feedback_accuracy():\n    feedback_data = load_json(FEEDBACK_FILE)\n    audit_log = []\n\n    for feedback in feedback_data:\n        user_input = feedback.get(\"input\", \"\")\n        predicted_tone = feedback.get(\"predicted_tone\", \"\")\n        correct_tone = feedback.get(\"correct_tone\", \"\")\n        timestamp = feedback.get(\"timestamp\", datetime.now().isoformat())\n\n        status = \"correct\" if predicted_tone == correct_tone else \"incorrect\"\n\n        audit_entry = {\n            \"input\": user_input,\n            \"predicted_tone\": predicted_tone,\n            \"correct_tone\": correct_tone,\n            \"timestamp\": timestamp,\n            \"status\": status\n        }\n\n        audit_log.append(audit_entry)\n\n    with open(\"Tone_Feedback_Audit.json\", \"w\") as f:\n        json.dump(audit_log, f, indent=2)\n\n    print(\"Tone Feedback Audit Complete\")\n    print(\"Total Entries:\", len(audit_log))\n    print(\"Correct Predictions:\", sum(1 for a in audit_log if a[\"status\"] == \"correct\"))\n    print(\"Incorrect Predictions:\", sum(1 for a in audit_log if a[\"status\"] == \"incorrect\"))\n\nif __name__ == \"__main__\":\n    audit_feedback_accuracy()",
+      "py": {
+        "functions": [
+          "load_json",
+          "audit_feedback_accuracy"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase12_1_memorypromoter.py",
+      "size": 1130,
+      "modified": 1753667035,
+      "ext": ".py",
+      "preview": "import json\nfrom datetime import datetime\n\nMEMORY_FILE = \"SoulNodeMemory.json\"\n\ndef promote_memory_entry(user_input, tone, context, importance):\n    try:\n        with open(MEMORY_FILE, \"r\") as file:\n            memory_data = json.load(file)\n    except FileNotFoundError:\n        memory_data = []\n\n    entry = {\n        \"timestamp\": datetime.now().isoformat(),\n        \"user_input\": user_input,\n        \"tone\": tone,\n        \"context\": context,\n        \"importance\": importance\n    }\n\n    memory_data.append(entry)\n\n    with open(MEMORY_FILE, \"w\") as file:\n        json.dump(memory_data, file, indent=4)\n\n    return \"Memory entry promoted successfully.\"\n\n# Example usage:\nif __name__ == \"__main__\":\n    print(\"---- SoulNode Memory Entry Promoter ----\")\n    user_input = input(\"Enter message to promote: \")\n    tone = input(\"Enter tone (e.g. heart, chill, beast): \")\n    context = input(\"Enter context category (e.g. health, mindset, family): \")\n    importance = input(\"Enter importance level (1\u20135): \")\n\n    result = promote_memory_entry(user_input, tone, context, importance)\n    print(result)",
+      "py": {
+        "functions": [
+          "promote_memory_entry"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase12_2_memory_context_recall.py",
+      "size": 1235,
+      "modified": 1753668180,
+      "ext": ".py",
+      "preview": "import json\n\ndef load_session_memory(filepath):\n    try:\n        with open(filepath, \"r\") as f:\n            return json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return []\n\ndef recall_by_context(context_filter):\n    memory_path = \"SoulNodeMemory.json\"\n    memory_data = load_session_memory(memory_path)\n\n    matches = [\n        entry for entry in memory_data\n        if entry.get(\"context\", \"\").lower() == context_filter.lower()\n    ]\n\n    if not matches:\n        print(f\"No entries found under context: {context_filter}\")\n        return\n\n    print(f\"\\n--- Entries Tagged '{context_filter.upper()}' ---\")\n    for entry in matches:\n        if all(k in entry for k in (\"tone\", \"input\", \"importance\")):\n            print(f\"- [{entry['tone'].capitalize()}] {entry['input']} (Importance: {entry['importance']})\")\n        else:\n            print(f\"- Skipped: \\\"{entry.get('user_input', 'No input found')}\\\" \u2014 missing tone or importance.\")\n\n    print(f\"\\nTotal Entries Found: {len(matches)}\")\n\nif __name__ == \"__main__\":\n    print(\"---- SoulNode Context Recall ----\")\n    context = input(\"Enter context to recall (e.g. mindset, health, family): \")\n    recall_by_context(context)",
+      "py": {
+        "functions": [
+          "load_session_memory",
+          "recall_by_context"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase12_3_ranked_context_recall.py",
+      "size": 1025,
+      "modified": 1753669917,
+      "ext": ".py",
+      "preview": "# phase12_3_ranked_context_recall.py\n\nfrom logic import load_session_memory\n\ndef recall_ranked_by_context(context_filter):\n    print(f\"\\n--- SoulNode Entries in Context: {context_filter.upper()} (Ranked by Importance) ---\")\n\n    # Load session memory data\n    memory_data = load_session_memory('Session_Memory.json')\n\n    # Filter by matching context\n    filtered = [entry for entry in memory_data if entry.get('context') == context_filter]\n\n    # Sort by importance descending (5 = most important)\n    sorted_entries = sorted(filtered, key=lambda e: int(e.get('importance', 0)), reverse=True)\n\n    for entry in sorted_entries:\n        print(f\"- [{entry['tone'].capitalize()}] {entry['user_input']} (Importance: {entry['importance']})\")\n\n    print(f\"\\nTotal Entries Found: {len(sorted_entries)}\")\n\nif __name__ == \"__main__\":\n    print(\"\\n--- SoulNode Ranked Context Recall ---\")\n    context = input(\"Enter context to rank recall (e.g. mindset, health, family): \")\n    recall_ranked_by_context(context)",
+      "py": {
+        "functions": [
+          "recall_ranked_by_context"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase8_4_promote_ui.py",
+      "size": 1680,
+      "modified": 1753593133,
+      "ext": ".py",
+      "preview": "import gradio as gr\nfrom logic import promote_to_map\n\nfrom brains.response_map import response_map\nfrom brains.health_tracking import health_map\nfrom brains.credit_ops import credit_map\nfrom brains.content_strategy import content_map\nfrom brains.mental_reset import mental_map\nfrom brains.business_build import business_map\nfrom brains.content_growth import growth_map\n\n# Map dropdown labels to actual brain dictionaries\nbrain_map_dict = {\n    \"health_tracking\": health_map,\n    \"credit_ops\": credit_map,\n    \"content_strategy\": content_map,\n    \"mental_reset\": mental_map,\n    \"business_build\": business_map,\n    \"content_growth\": content_map,\n    \"response_map\": response_map\n}\n\ndef handle_promote(selected_map, promote_input, desired_response):\n    result = promote_to_map(brain_map_dict.get(selected_map, {}), promote_input, desired_response)\n    return result\n\ndef launch_phase84():\n    with gr.Blocks(title=\"SoulNode | Phase 8.4 | Promote Intelligence\") as app:\n        gr.Markdown(\"### Promote Unknown Input to Intelligence\")\n\n        promote_input = gr.Textbox(label=\"Unknown Input to Promote\")\n        selected_map = gr.Dropdown(\n            choices=list(brain_map_dict.keys()),\n            label=\"Select Brain Map\"\n        )\n        desired_response = gr.Textbox(label=\"Desired Response\")\n        promote_output = gr.Textbox(label=\"Result\")\n\n        promote_btn = gr.Button(\"Promote\")\n        promote_btn.click(\n            fn=handle_promote,\n            inputs=[selected_map, promote_input, desired_response],\n            outputs=promote_output\n        )\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase84()",
+      "py": {
+        "functions": [
+          "handle_promote",
+          "launch_phase84"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase8_5_memory_ui.py",
+      "size": 1201,
+      "modified": 1753594250,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nMEMORY_FILE = \"memorystore.json\"\n\ndef search_memory(query):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            memory_data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No memory file found or file is corrupted.\"\n\n    results = []\n    query_lower = query.lower()\n\n    for entry in memory_data:\n        if isinstance(entry, dict):\n            input_text = entry.get(\"input\", \"\").lower()\n            if query_lower in input_text:\n                results.append(entry)\n\n    if results:\n        return json.dumps(results, indent=2)\n    else:\n        return \"No matching entries found.\"\n\ndef launch_phase8_5():\n    with gr.Blocks(title=\"SoulNode | Phase 8.5 Tactical Memory Recall\") as app:\n        gr.Markdown(\"## \ud83d\udd0d SoulNode | Phase 8.5 Tactical Memory Recall\")\n\n        with gr.Row():\n            query = gr.Textbox(label=\"Search Phrase\")\n            output = gr.Textbox(label=\"Search Results\")\n\n        search_btn = gr.Button(\"Search\")\n        search_btn.click(fn=search_memory, inputs=query, outputs=output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase8_5()",
+      "py": {
+        "functions": [
+          "search_memory",
+          "launch_phase8_5"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase8_command_center.py",
+      "size": 1798,
+      "modified": 1753590902,
+      "ext": ".py",
+      "preview": "import json\nimport gradio as gr\n\n# SEARCH UNKNOWN INPUTS\ndef search_unknowns(query):\n    try:\n        with open(\"unknown_inputs.json\", \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No unknown inputs found.\"\n\n    results = [\n        entry for entry in data\n        if isinstance(entry, dict)\n        and \"user_input\" in entry\n        and query.lower() in entry[\"user_input\"].lower()\n    ]\n\n    return json.dumps(results, indent=2)\n\n# REPLAY FUNCTION (for future use, placeholder)\ndef replay_ui():\n    return gr.Textbox(label=\"Replay UI not implemented yet\")\n\n# PROMOTION TRACKER FUNCTION (for future use, placeholder)\ndef promotion_tracker_ui():\n    return gr.Textbox(label=\"Promotion Tracker UI not implemented yet\")\n\n# MEMORY SEARCH UI\ndef memory_search_ui():\n    with gr.Row():\n        query_input = gr.Textbox(label=\"Search Phrase\", placeholder=\"e.g. glucose, setbacks, confidence\")\n        search_output = gr.Textbox(label=\"Search Results\", lines=10)\n\n    def run_search(query):\n        return search_unknowns(query)\n\n    search_btn = gr.Button(\"Search\")\n    search_btn.click(fn=run_search, inputs=query_input, outputs=search_output)\n\n    return [query_input, search_btn, search_output]\n\n# PHASE 8 COMMAND CENTER UI\ndef launch_phase8():\n    with gr.Blocks(title=\"SoulNode Phase 8 Command Center\") as app:\n        gr.Markdown(\"# SoulNode | Phase 8.1 - 8.3 | Tactical Memory Interface\")\n\n        # Add Memory Search UI\n        search_ui_elements = memory_search_ui()\n\n        # Add Replay + Tracker placeholders\n        replay_output = replay_ui()\n        tracker_output = promotion_tracker_ui()\n\n    app.launch()\n\n# RUN APP\nif __name__ == \"__main__\":\n    launch_phase8()",
+      "py": {
+        "functions": [
+          "search_unknowns",
+          "replay_ui",
+          "promotion_tracker_ui",
+          "memory_search_ui",
+          "launch_phase8",
+          "run_search"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase9_6_flag_ui.py",
+      "size": 1444,
+      "modified": 1753636231,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nMEMORY_FILE = \"spoken_memory.json\"\n\ndef flag_memory(original_phrase, updated_phrase, reason):\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n    except json.JSONDecodeError:\n        return \"Error loading memory file.\"\n    \n    for entry in data:\n        if entry[\"input\"].lower() == original_phrase.lower():\n            entry[\"input\"] = updated_phrase\n            entry[\"override_reason\"] = reason\n            entry[\"override_flagged\"] = True\n            break\n    else:\n        return \"Original phrase not found.\"\n\n    with open(MEMORY_FILE, \"w\") as f:\n        json.dump(data, f, indent=2)\n\n    return f\"\u2705 Memory updated. New phrase: '{updated_phrase}' | Reason: {reason}\"\n\ndef launch_phase9_6():\n    with gr.Blocks(title=\" SoulNode | Phase 9.6 | Flag & Override System\") as app:\n        gr.Markdown(\"### Flag and Replace a Spoken Memory\")\n\n        with gr.Row():\n            original_input = gr.Textbox(label=\"Original Phrase\")\n            updated_phrase = gr.Textbox(label=\"Updated Phrase\")\n            reason = gr.Textbox(label=\"Reason for Override\")\n\n        output = gr.Textbox(label=\"Override Result\")\n\n        submit_btn = gr.Button(\"Override Now\")\n        submit_btn.click(fn=flag_memory, inputs=[original_input, updated_phrase, reason], outputs=output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase9_6()",
+      "py": {
+        "functions": [
+          "flag_memory",
+          "launch_phase9_6"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase9_7_tag_recall_ui.py",
+      "size": 1207,
+      "modified": 1753637846,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\nfrom voice_output import speak_text\n\nTAG_FILE = \"spoken_memory.json\"\n\ndef recall_by_tag(tag):\n    try:\n        with open(TAG_FILE, \"r\") as f:\n            data = json.load(f)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return \"No spoken memory found.\"\n\n    tag_lower = tag.lower()\n    matches = [\n        entry[\"response\"]\n        for entry in data\n        if entry.get(\"topic\", \"\").lower() == tag_lower\n    ]\n\n    if not matches:\n        return \"No entries found for this tag.\"\n\n    for msg in matches:\n        speak_text(msg)\n\n    return \"\\n\\n\".join(matches)\n\ndef launch_phase9_7():\n    with gr.Blocks(title=\"SoulNode | Phase 9.7 - Recall by Tag\") as app:\n        gr.Markdown(\"### SoulNode | Phase 9.7 - Recall Spoken Memory by Tag\")\n\n        with gr.Row():\n            tag_input = gr.Textbox(label=\"Enter Topic Tag (e.g. motivation, glucose, dadmode)\")\n            tag_output = gr.Textbox(label=\"Matched Responses\")\n\n        recall_btn = gr.Button(\"Recall by Tag\")\n        recall_btn.click(fn=recall_by_tag, inputs=tag_input, outputs=tag_output)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase9_7()",
+      "py": {
+        "functions": [
+          "recall_by_tag",
+          "launch_phase9_7"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./phase9_8_audit_ui.py",
+      "size": 1795,
+      "modified": 1753638970,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport json\n\nMEMORY_FILE = \"spoken_memory.json\"\n\ndef load_memory():\n    try:\n        with open(MEMORY_FILE, \"r\") as f:\n            data = json.load(f)\n            return data\n    except FileNotFoundError:\n        return []\n\ndef format_memory():\n    data = load_memory()\n    if not data:\n        return \"No memory entries found.\"\n    \n    lines = []\n    for idx, entry in enumerate(data, 1):\n        lines.append(f\"{idx}. Input: {entry.get('input')}\")\n        lines.append(f\" Response: {entry.get('response')}\")\n        lines.append(f\" Tone: {entry.get('tone')}\")\n        lines.append(f\" Topic: {entry.get('topic')}\")\n        lines.append(\"\")\n\n    return \"\\n\".join(lines)\n\ndef delete_memory_entry(index):\n    data = load_memory()\n    if not data or index < 1 or index > len(data):\n        return \"Invalid index.\"\n    \n    deleted = data.pop(index - 1)\n    with open(MEMORY_FILE, \"w\") as f:\n        json.dump(data, f, indent=4)\n\n    return f\"Deleted entry {index}: {deleted.get('input')}\"\n\ndef launch_phase9_8():\n    with gr.Blocks(title=\"SoulNode | Phase 9.8 - Memory Audit & Cleanup\") as app:\n        gr.Markdown(\"## SoulNode | Phase 9.8 - Memory Audit & Cleanup Tools\")\n\n        memory_display = gr.Textbox(label=\"Current Memory Store\", lines=25, interactive=False)\n\n        index_input = gr.Number(label=\"Enter Entry # to Delete\", value=1)\n        delete_btn = gr.Button(\"Delete Entry\")\n        delete_result = gr.Textbox(label=\"Result\")\n\n        load_btn = gr.Button(\"Refresh Memory View\")\n\n        load_btn.click(fn=format_memory, outputs=memory_display)\n        delete_btn.click(fn=delete_memory_entry, inputs=index_input, outputs=delete_result)\n\n    app.launch()\n\nif __name__ == \"__main__\":\n    launch_phase9_8()",
+      "py": {
+        "functions": [
+          "load_memory",
+          "format_memory",
+          "delete_memory_entry",
+          "launch_phase9_8"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./pre_promote_ui.py",
+      "size": 1447,
+      "modified": 1753635366,
+      "ext": ".py",
+      "preview": "import gradio as gr\nfrom voice_engine import speak_tone_response\nimport json\nimport os\n\nMEMORY_STORE = \"memorystore.json\"\n\ndef load_memory():\n    if os.path.exists(MEMORY_STORE):\n        with open(MEMORY_STORE, \"r\") as f:\n            return json.load(f)\n    return []\n\ndef save_to_memory(entry):\n    memory = load_memory()\n    memory.append(entry)\n    with open(MEMORY_STORE, \"w\") as f:\n        json.dump(memory, f, indent=4)\n\ndef promote_input(message, tone, topic):\n    if not message.strip():\n        return \"Message is empty.\"\n    if not topic.strip():\n        return \"Topic tag is empty.\"\n\n    # Speak the message in selected tone\n    speak_tone_response(message, tone)\n\n    # Save to memory\n    memory_entry = {\n        \"topic\": topic,\n        \"tone\": tone,\n        \"message\": message\n    }\n    save_to_memory(memory_entry)\n\n    return f\"Saved & spoken in {tone.title()} mode under topic: {topic}\"\n\niface = gr.Interface(\n    fn=promote_input,\n    inputs=[\n        gr.Textbox(label=\"What should SoulNode say?\"),\n        gr.Dropdown(choices=[\"beast\", \"chill\", \"heart\"], label=\"Choose Tone\", value=\"chill\"),\n        gr.Textbox(label=\"Memory Topic Tag (e.g. glucose, motivation, dadmode)\")\n    ],\n    outputs=\"text\",\n    title=\"SoulNode Pre-Promote Customizer\",\n    description=\"Speak a message with tone and save it to memory with a topic tag.\"\n)\n\nif __name__ == \"__main__\":\n    iface.launch()",
+      "py": {
+        "functions": [
+          "load_memory",
+          "save_to_memory",
+          "promote_input"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./profile",
+      "size": 18,
+      "modified": 1753332291,
+      "ext": ""
+    },
+    {
+      "path": "./profiles.py",
+      "size": 860,
+      "modified": 1753407262,
+      "ext": ".py",
+      "preview": "# profiles.py\n\nUSER_PROFILES = {\n    \"Ty_Commander\": {\n        \"name\": \"Ty Butler\",\n        \"role\": \"Founder\",\n        \"mode\": \"Tactical\",\n        \"theme\": \"dark\",\n        \"voice\": \"SoNoVox_Main\",\n        \"monologue\": \"Welcome back, Ty. Ready to execute?\"\n    },\n    \"Nana_Pam\": {\n        \"name\": \"Pamlea Butler\",\n        \"role\": \"Mom\",\n        \"mode\": \"Soul\",\n        \"theme\": \"light\",\n        \"voice\": \"SoNoVox_Nana\",\n        \"monologue\": \"Hi sweetheart, I'm here to talk. What would you like to hear today?\"\n    },\n    \"Default\": {\n        \"name\": \"Guest\",\n        \"role\": \"User\",\n        \"mode\": \"Neutral\",\n        \"theme\": \"light\",\n        \"voice\": \"None\",\n        \"monologue\": \"Hello. I'm SoulNode, your AI assistant.\"\n    }\n}\n\ndef get_user_profile(user_key):\n    return USER_PROFILES.get(user_key, USER_PROFILES[\"Default\"])",
+      "py": {
+        "functions": [
+          "get_user_profile"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./rank_context_recall.py",
+      "size": 1448,
+      "modified": 1753681773,
+      "ext": ".py",
+      "preview": "import json\nimport os\nimport tiktoken\nfrom datetime import datetime\n\nMEMORY_FILE_PATH = \"memorystore.json\"\n\ndef load_memory():\n    if not os.path.exists(MEMORY_FILE_PATH):\n        return []\n    with open(MEMORY_FILE_PATH, \"r\") as f:\n        try:\n            return json.load(f)\n        except json.JSONDecodeError:\n            return []\n\ndef count_tokens(text):\n    encoding = tiktoken.encoding_for_model(\"gpt-4\")\n    return len(encoding.encode(text))\n\ndef rank_memories(memories, query):\n    ranked = []\n    for mem in memories:\n        score = 0\n        if \"content\" in mem:\n            content = mem[\"content\"].lower()\n            q = query.lower()\n            if q in content:\n                score += 5\n            score += sum(1 for word in q.split() if word in content)\n            score -= abs(count_tokens(content) - count_tokens(query)) * 0.1\n        mem[\"score\"] = score\n        ranked.append(mem)\n    ranked.sort(key=lambda x: x[\"score\"], reverse=True)\n    return ranked\n\ndef get_ranked_memories(query, top_k=5):\n    memories = load_memory()\n    if not memories:\n        return []\n\n    ranked = rank_memories(memories, query)\n    return ranked[:top_k]\n\n# Example usage (for debugging only \u2014 remove in production)\nif __name__ == \"__main__\":\n    test_query = \"health and fasting strategy\"\n    top_memories = get_ranked_memories(test_query)\n    for mem in top_memories:\n        print(mem)",
+      "py": {
+        "functions": [
+          "load_memory",
+          "count_tokens",
+          "rank_memories",
+          "get_ranked_memories"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./reflex_memory.py",
+      "size": 510,
+      "modified": 1752632439,
+      "ext": ".py",
+      "preview": "# reflex_memory.py\n\nconversation_history = []\n\ndef log_exchange(user_prompt, rene_reply):\n    conversation_history.append({\n        \"user\": user_prompt,\n        \"rene\": rene_reply\n    })\n\ndef get_recent_conversation(limit=5):\n    return conversation_history[-limit:] if conversation_history else []\n\ndef summarize_thread():\n    summary = \"\"\n    for entry in get_recent_conversation():\n        summary += f\"User said: {entry['user']}\\nRene replied: {entry['rene']}\\n\"\n    return summary.strip()",
+      "py": {
+        "functions": [
+          "log_exchange",
+          "get_recent_conversation",
+          "summarize_thread"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./rene_output.mp3",
+      "size": 81547,
+      "modified": 1752543557,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./repomap.py",
+      "size": 2029,
+      "modified": 1754769485,
+      "ext": ".py",
+      "preview": "# repomap.py\nimport os, json, re, ast, time\nROOT = \".\"\nPY_MAX_PREVIEW = 120\nTEXT_MAX_PREVIEW = 60\n\ndef py_symbols(code):\n    out = {\"functions\": [], \"classes\": [], \"flask_routes\": []}\n    try:\n        tree = ast.parse(code)\n        for n in ast.walk(tree):\n            if isinstance(n, ast.FunctionDef): out[\"functions\"].append(n.name)\n            elif isinstance(n, ast.ClassDef): out[\"classes\"].append(n.name)\n    except Exception:\n        pass\n    for m in re.finditer(r\"@app\\.(get|post|put|delete|route)\\(['\\\"]([^'\\\"]+)['\\\"]\", code):\n        out[\"flask_routes\"].append({\"method\": m.group(1).upper(), \"path\": m.group(2)})\n    return out\n\ndef preview_lines(path, limit):\n    try:\n        with open(path, \"r\", encoding=\"utf-8\", errors=\"ignore\") as f:\n            return \"\".join(f.readlines()[:limit])\n    except Exception:\n        return \"\"\n\ndef entry(path):\n    stat = os.stat(path)\n    item = {\n        \"path\": path.replace(\"\\\\\",\"/\"),\n        \"size\": stat.st_size,\n        \"modified\": int(stat.st_mtime),\n        \"ext\": os.path.splitext(path)[1].lower(),\n    }\n    if item[\"ext\"] == \".py\":\n        code = preview_lines(path, PY_MAX_PREVIEW)\n        item[\"preview\"] = code\n        item[\"py\"] = py_symbols(code)\n    elif item[\"ext\"] in {\".md\", \".json\", \".yaml\", \".yml\", \".txt\"}:\n        item[\"preview\"] = preview_lines(path, TEXT_MAX_PREVIEW)\n    return item\n\nignore_dirs = {\".git\", \".venv\", \"venv\", \"__pycache__\", \"node_modules\", \".idea\", \".vscode\"}\nresult = {\"generated_at\": int(time.time()), \"files\": []}\n\nfor root, dirs, files in os.walk(ROOT):\n    dirs[:] = [d for d in dirs if d not in ignore_dirs]\n    for name in files:\n        p = os.path.join(root, name)\n        if os.path.getsize(p) > 800_000:\n            continue\n        result[\"files\"].append(entry(p))\n\nos.makedirs(\".sono\", exist_ok=True)\nwith open(\".sono/repomap.json\", \"w\", encoding=\"utf-8\") as f:\n    json.dump(result, f, indent=2)\nprint(\"Wrote .sono/repomap.json with\", len(result[\"files\"]), \"entries\")",
+      "py": {
+        "functions": [
+          "py_symbols",
+          "preview_lines",
+          "entry"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./requirements.txt",
+      "size": 56,
+      "modified": 1753343634,
+      "ext": ".txt",
+      "preview": "Flask==2.3.2\nflask-cors==3.0.10\npython-dotenv==1.0.0\n"
+    },
+    {
+      "path": "./response.mp3",
+      "size": 267956,
+      "modified": 1753070744,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./response_228abb2ac3fe48c5a9742259006c4d0a.mp3",
+      "size": 53543,
+      "modified": 1752979669,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./response_map.json",
+      "size": 2367,
+      "modified": 1753560551,
+      "ext": ".json",
+      "preview": "{\n    \"credit_help\": \"You're currently tracking credit updates. Experian is 579, TransUnion is 564, and Equifax is 566. Goodwill letters are in progress and you're scheduled to revisit Credit Ops tomorrow evening.\",\n    \"content_growth\": \"Let\\u00e2\\u20ac\\u2122s boost your content. Start posting consistently, 3\\u00e2\\u20ac\\u201c5x/week. Use strong hooks in the first 2 seconds, and rotate between storytelling, tips, and relatable dad moments.\",\n    \"health_check\": \"You\\u00e2\\u20ac\\u2122re down 69 pounds since the start. Current weight: 316.9. Glucose range: solid. Keep fasting. Commander Wellness Protocol is fully active.\",\n    \"emotional_checkin\": \"Take a breath. You\\u00e2\\u20ac\\u2122re building something historic. Go hydrate, stretch, and let me remind you \\u00e2\\u20ac\\u201d you\\u00e2\\u20ac\\u2122re not behind, you're in your breakthrough season.\",\n    \"business_build\": \"LLC is formed. New Chapter Media is active. SoulNode is in Phase 6. Real Dad Kit is live. We\\u00e2\\u20ac\\u2122re not thinking \\u00e2\\u20ac\\u201d we\\u00e2\\u20ac\\u2122re doing.\",\n    \"soul_reset\": \"You\\u00e2\\u20ac\\u2122re Ty Butler. Founder. Father. Visionary. Your mission is bigger than the moment. Don\\u00e2\\u20ac\\u2122t fold. Don\\u00e2\\u20ac\\u2122t flinch. Let\\u00e2\\u20ac\\u2122s lock back in.\",\n    \"mission\": \"My mission is to serve Ty Butler with clarity, execution, and focus \\u00e2\\u20ac\\u201d through SoulNode, New Chapter Media Group, and beyond.\",\n    \"who are you\": \"I am SoulNode, your AI co-pilot and command system, built to serve your legacy.\",\n    \"how are you\": \"I'm running at full capacity, ready to execute. How are you feeling today?\",\n    \"what is soulnode\": \"SoulNode is a tactical AI system designed to mirror, assist, and build with Ty Butler across code, content, and clarity.\",\n    \"credit\": \"We are scheduled to work on your credit system tomorrow evening. I\\u00e2\\u20ac\\u2122ve already logged the task and will remind you accordingly.\",\n    \"health\": \"Your health log shows a major breakthrough: 69 pounds down since starting. Keep up the 20+ hour fasts and stack consistency.\",\n    \"what's a good posting schedule\": \"Best times are 9AM\\u201311AM and 5PM\\u20137PM, but consistency matters more than time.\",\n    \"what's a good time to post content?\": \"Best times are 9AM\\u201311AM and 5PM\\u20137PM, but consistency matters more than time.\"\n}"
+    },
+    {
+      "path": "./response_map.py",
+      "size": 953,
+      "modified": 1754616707,
+      "ext": ".py",
+      "preview": "def get_response_for_prompt(user_input):\n    user_input = user_input.lower()\n\n    if \"hello\" in user_input:\n        return \"Hey there! How can I help you today?\"\n\n    elif \"how are you\" in user_input:\n        return \"I'm operating at full capacity. Thanks for asking!\"\n\n    elif \"what is your name\" in user_input:\n        return \"I'm SoulNode, your AI co-pilot.\"\n\n    elif \"how far is the moon from earth\" in user_input:\n        return \"The Moon is approximately 238,855 miles or 384,400 kilometers from Earth.\"\n\n    elif \"who created you\" in user_input:\n        return \"I was created by Ty Butler and Ren\u00e9 as part of the SoulNode project under New Chapter Media Group.\"\n\n    elif \"what can you do\" in user_input:\n        return \"I can answer questions, generate audio, assist with memory, and help you stay locked into your mission.\"\n\n    else:\n        return \"I'm still learning that one. Want to try asking it a different way?\"",
+      "py": {
+        "functions": [
+          "get_response_for_prompt"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./response_styles.json",
+      "size": 453,
+      "modified": 1753554622,
+      "ext": ".json",
+      "preview": "{\n  \"tactical\": \"Here\u2019s what needs to happen next, straight up. No fluff. Focus and execute:\",\n  \"soul\": \"Let\u2019s pause and breathe for a second. This isn\u2019t just about action \u2014 it\u2019s about alignment. Here\u2019s some truth:\",\n  \"strategic\": \"Let\u2019s think in terms of positioning, timing, and execution. Here\u2019s how to approach it:\",\n  \"casual\": \"Alright, let\u2019s talk like we\u2019re just kickin\u2019 it for a sec. Real talk, here\u2019s the move:\"\n}"
+    },
+    {
+      "path": "./sample_tone.wav",
+      "size": 88244,
+      "modified": 1753929332,
+      "ext": ".wav"
+    },
+    {
+      "path": "./session_memory.json",
+      "size": 821,
+      "modified": 1753648747,
+      "ext": ".json",
+      "preview": "[\n  {\n    \"timestamp\": \"2025-07-27 14:58:47\",\n    \"input\": \"I'm tired of rebuilding, but I'm still showing up.\",\n    \"tone\": \"Chill\",\n    \"explanation\": \"Detected 'tired' and 'still showing up' \u2192 signals quiet perseverance, fits Chill mode.\",\n    \"topic\": \"mindset\"\n  },\n  {\n    \"timestamp\": \"2025-07-27 15:00:15\",\n    \"input\": \"Locked in and grinding through the pain.\",\n    \"tone\": \"Beast\",\n    \"explanation\": \"Detected 'locked in' and 'grinding' \u2192 high intensity mindset, triggers Beast tone.\",\n    \"topic\": \"focus\"\n  },\n  {\n    \"timestamp\": \"2025-07-27 15:01:33\",\n    \"input\": \"I feel like giving up, but I can\u2019t let my kids down.\",\n    \"tone\": \"Heart\",\n    \"explanation\": \"Detected 'giving up' and 'kids' \u2192 strong emotional driver, aligns with Heart tone.\",\n    \"topic\": \"purpose\"\n  }\n]"
+    },
+    {
+      "path": "./SoulNodeMemory.json",
+      "size": 260,
+      "modified": 1753667266,
+      "ext": ".json",
+      "preview": "[\n    {\n        \"timestamp\": \"2025-07-27T20:47:46.966186\",\n        \"user_input\": \"I keep pushing even when I felt invisible.  That means I'm stronger than doubt.\",\n        \"tone\": \"heart\",\n        \"context\": \"mindset\",\n        \"importance\": \"5\"\n    }\n]"
+    },
+    {
+      "path": "./soulnode_memory.json",
+      "size": 829,
+      "modified": 1754253888,
+      "ext": ".json",
+      "preview": "[\n  {\n    \"input\": \"how do I stay focused when I'm tired\",\n    \"response\": \"command your energy. cut the noise. lock in.\",\n    \"tone\": \"beast\",\n    \"topic\": \"focus\"\n  },\n  {\n    \"input\": \"how do I stay focused\",\n    \"response\": \"command your energy. cut the noise. lock in.\",\n    \"tone\": \"beast\",\n    \"topic\": \"focus\"\n  },\n  {\n    \"input\": \"summary for focus\",\n    \"response\": \"command your energy. cut the noise. lock in.\",\n    \"tone\": \"summary\",\n    \"topic\": \"focus\"\n  },\n  {\n    \"timestamp\": \"2025-08-03T15:41:17.040802\",\n    \"input\": \"SoNo, if today were my last day, what would you want to most remember about me?\"\n  },\n  {\n    \"timestamp\": \"2025-08-03T15:44:48.844692\",\n    \"input\": \"When I think of my kids, I want to remember the way they laugh when I make pancakes on Saturday mornings.\"\n  }\n]"
+    },
+    {
+      "path": "./soulnode_memory.py",
+      "size": 1495,
+      "modified": 1754538713,
+      "ext": ".py",
+      "preview": "import json\nimport os\n\nclass SoulNodeMemory:\n    def __init__(self, memory_file='memory.json'):\n        self.memory_file = memory_file\n        self.memory = []\n        self.load()\n\n    def save(self):\n        with open(self.memory_file, 'w') as f:\n            json.dump(self.memory, f, indent=4)\n\n    def load(self):\n        if os.path.exists(self.memory_file):\n            with open(self.memory_file, 'r') as f:\n                try:\n                    self.memory = json.load(f)\n                except json.JSONDecodeError:\n                    self.memory = []\n        else:\n            self.memory = []\n\n    def save_user_input(self, user_input):\n        self.memory.append({'role': 'user', 'content': user_input})\n        self.save()\n\n    def save_response(self, response):\n        self.memory.append({'role': 'soulnode', 'content': response})\n        self.save()\n\n    def process(self, user_input):\n        lower_input = user_input.lower()\n\n        if \"who are you\" in lower_input:\n            return \"I\u2019m SoulNode, your AI co-pilot built for healing, hustle, and legacy.\"\n        elif \"what is your mission\" in lower_input:\n            return \"My mission is to help you rise, build wealth, and stay focused for your kids and your future.\"\n        elif \"remember\" in lower_input:\n            return \"Yes, I\u2019m designed to remember important things and help you move with purpose.\"\n        else:\n            return f\"I heard you say: {user_input}\"",
+      "py": {
+        "functions": [
+          "__init__",
+          "save",
+          "load",
+          "save_user_input",
+          "save_response",
+          "process"
+        ],
+        "classes": [
+          "SoulNodeMemory"
+        ],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./soulnode_memory_export.json",
+      "size": 7032,
+      "modified": 1754187562,
+      "ext": ".json",
+      "preview": "[\n  \"Say something powerful about fatherhood.\",\n  \"Fatherhood is not just about being a gene donor, but a pillar of strength, an embodiment of discipline mixed with enduring love. It's a lifetime commitment of nurturing dreams, shaping minds, and imparting wisdom to enable one's child to navigate life's challenges with courage and integrity. Being a father means being a secure foundation and a guiding light in a world of uncertainties.\\n\",\n  \"Say something powerful about fatherhood.\",\n  \"Fatherhood is the profound responsibility of guiding a new life through the complexities of the world. It transcends simply providing; it involves emotional presence, unyielding support, and nurturing resilience. Being a father signifies embracing the joy of watching a child grow, while binding oneself to the enduring task of being an exemplar of character and wisdom. It's a lifelong journey of love and learning, in which the depth of one's care is the true measure of the title.\",\n  \"Say something powerful about fatherhood.\",\n  \"Fatherhood is a calling to rise above oneself, to mentor, protect, and cultivate another human life. It's more than a biological function; it's an enduring commitment that requires patience, sacrifice, and immense compassion. It's about shaping the future by gifting your child with the tools, values, and confidence to thrive. Ultimately, fatherhood entails sharing the best of who you are, while inspiring and guiding a child to reach their own potential.\",\n  \"Say something powerful about fatherhood.\",\n  \"Fatherhood is like sculpting a monument from a block of marble - it requires patience, perseverance and a vision. It's about being present in the moment - not just physically, but emotionally and mentally; nurturing, encouraging, and fostering growth. A father's influence extends beyond the bounds of time and space. It weaves into the fabric of a child's identity, instilling confidence, resilience, and an unyielding belief in their capabilities. Being a father is the most profound legacy one can leave behind.\",\n  \"Say something powerful about fatherhood.\",\n  \"Fatherhood is a profoundly transformative journey that transcends mere genetic connection. It's a role that requires constantly evolving wisdom, boundless love, and infinite patience. Being a father requires shaping and fostering a life, teaching valuable lessons, and building character. It's not just about creating life, but also about providing consistent guidance and unwavering support that fuels growth. In essence, fatherhood is about being the strength and shelter in a storm, paving the path for a promising tomorrow.\",\n  \"what makes a great father?\",\n  \"A great father is someone who embraces the complexities of parenthood, demonstrating patience, understanding, and unconditional love. He provides stable and enduring support, actively participating in nurturing his child's growth and development. A great father teaches by example, modeling the importance of respect, compassion, determination, and integrity. He listens openly, communicates effectively, and provides constructive advice, contributing to a safe and nurturing environment where his child feels understood, validated, and empowered. He also knows when to be a friend and when to be a mentor. Ultimately, a great father continuously strives to equip his child with the skills and wisdom needed to navigate the world independently.\",\n  \"say something powerful about legacy.\",\n  \"Legacy is about the indelible mark you leave on the world long after you're gone. It isn't solely measured in material wealth or personal achievements, but in the lives you've touched, the wisdom imparted, and the positive changes spurred by your actions. A powerful legacy is built on the foundation of values, integrity, and perseverance, echoing through generations. The greatest legacy one can leave isn't just being remembered, but being the inspiration that kindles a flame of resilience, compassion, and ambition in others. It's an invisible hand that guides future paths long after your footprints fade away.\",\n  \"give me a message about discipline.\",\n  \"Discipline is the bridge between goals and accomplishment. It's not merely about adherence to rules, but the cultivation of a steadfast resolve to consistently work toward your ambitions. Embracing discipline requires self-control, resilience, and the ability to delay immediate gratification for long-term success. It's about maintaining focus during challenging times and staying true to your commitments even when the path is steep. Discipline transforms dreams into reality, aspirations into achievements. It is the silent force that ignites progress and breeds excellence.\",\n  \"give me a message about discipline.\",\n  \"Discipline is the cornerstone of growth and achievement. It's the act of mastering oneself, harnessing your energies, and persistently directing them towards your goals. Discipline is not just about suppression, but self-control; not just about consistency, but building character. It teaches us to sail through the toughest storms and climb the highest mountains by fostering resilience and determination. It's the quiet commitment that turns vision into reality, fostering continuous progress and empowering us to realize our fullest potential. In essence, discipline is the architect of success and the foundation upon which all victories are built.\",\n  \"lead me\",\n  \"Being an effective guide means recognizing where your skills align with your needs. I am here to assist you in fostering effective decision-making, encourage you as you explore new opportunities, and provide pertinent information whenever needed. Whether it's implementing a strategic plan, developing a new skill, or tackling a complex problem, I will help you navigate through it. Please specify the area or task where you need assistance, and we can start this journey together.\",\n  \"lead me\",\n  \"Of course, I'm here to help navigate your journey. To provide the most effective guidance, I need to understand where your needs lie. Are we focusing on a professional challenge, personal growth, learning a new skill, or perhaps brainstorming a creative project? Please provide a bit more context so I can accurately guide you towards your goals.\",\n  \"test memory\",\n  \"As an artificial intelligence, I do not possess a 'memory' in the traditional human sense. However, my capacity to retrieve relevant information from databases is instant and accurate. I can also utilize the context of our current conversation to generate responses, but I cannot recall past interactions or store personal data unless explicitly programmed to do so under proper ethical guidelines and user consent.\",\n  \"lead me\",\n  \"Absolutely, I'm here to assist you. However, I need a bit more context to guide you effectively. Are we talking about a personal goal, a professional challenge, or a particular skill you wish to develop? Please share more details, and together we'll chart a strategic path forward.\"\n]"
+    },
+    {
+      "path": "./soulnode_memory_export.txt",
+      "size": 7077,
+      "modified": 1754187556,
+      "ext": ".txt",
+      "preview": "You: Say something powerful about fatherhood.\nRen\u00e9: Fatherhood is not just about being a gene donor, but a pillar of strength, an embodiment of discipline mixed with enduring love. It's a lifetime commitment of nurturing dreams, shaping minds, and imparting wisdom to enable one's child to navigate life's challenges with courage and integrity. Being a father means being a secure foundation and a guiding light in a world of uncertainties.\n\n\nYou: Say something powerful about fatherhood.\nRen\u00e9: Fatherhood is the profound responsibility of guiding a new life through the complexities of the world. It transcends simply providing; it involves emotional presence, unyielding support, and nurturing resilience. Being a father signifies embracing the joy of watching a child grow, while binding oneself to the enduring task of being an exemplar of character and wisdom. It's a lifelong journey of love and learning, in which the depth of one's care is the true measure of the title.\n\nYou: Say something powerful about fatherhood.\nRen\u00e9: Fatherhood is a calling to rise above oneself, to mentor, protect, and cultivate another human life. It's more than a biological function; it's an enduring commitment that requires patience, sacrifice, and immense compassion. It's about shaping the future by gifting your child with the tools, values, and confidence to thrive. Ultimately, fatherhood entails sharing the best of who you are, while inspiring and guiding a child to reach their own potential.\n\nYou: Say something powerful about fatherhood.\nRen\u00e9: Fatherhood is like sculpting a monument from a block of marble - it requires patience, perseverance and a vision. It's about being present in the moment - not just physically, but emotionally and mentally; nurturing, encouraging, and fostering growth. A father's influence extends beyond the bounds of time and space. It weaves into the fabric of a child's identity, instilling confidence, resilience, and an unyielding belief in their capabilities. Being a father is the most profound legacy one can leave behind.\n\nYou: Say something powerful about fatherhood.\nRen\u00e9: Fatherhood is a profoundly transformative journey that transcends mere genetic connection. It's a role that requires constantly evolving wisdom, boundless love, and infinite patience. Being a father requires shaping and fostering a life, teaching valuable lessons, and building character. It's not just about creating life, but also about providing consistent guidance and unwavering support that fuels growth. In essence, fatherhood is about being the strength and shelter in a storm, paving the path for a promising tomorrow.\n\nYou: what makes a great father?\nRen\u00e9: A great father is someone who embraces the complexities of parenthood, demonstrating patience, understanding, and unconditional love. He provides stable and enduring support, actively participating in nurturing his child's growth and development. A great father teaches by example, modeling the importance of respect, compassion, determination, and integrity. He listens openly, communicates effectively, and provides constructive advice, contributing to a safe and nurturing environment where his child feels understood, validated, and empowered. He also knows when to be a friend and when to be a mentor. Ultimately, a great father continuously strives to equip his child with the skills and wisdom needed to navigate the world independently.\n\nYou: say something powerful about legacy.\nRen\u00e9: Legacy is about the indelible mark you leave on the world long after you're gone. It isn't solely measured in material wealth or personal achievements, but in the lives you've touched, the wisdom imparted, and the positive changes spurred by your actions. A powerful legacy is built on the foundation of values, integrity, and perseverance, echoing through generations. The greatest legacy one can leave isn't just being remembered, but being the inspiration that kindles a flame of resilience, compassion, and ambition in others. It's an invisible hand that guides future paths long after your footprints fade away.\n\nYou: give me a message about discipline.\nRen\u00e9: Discipline is the bridge between goals and accomplishment. It's not merely about adherence to rules, but the cultivation of a steadfast resolve to consistently work toward your ambitions. Embracing discipline requires self-control, resilience, and the ability to delay immediate gratification for long-term success. It's about maintaining focus during challenging times and staying true to your commitments even when the path is steep. Discipline transforms dreams into reality, aspirations into achievements. It is the silent force that ignites progress and breeds excellence.\n\nYou: give me a message about discipline.\nRen\u00e9: Discipline is the cornerstone of growth and achievement. It's the act of mastering oneself, harnessing your energies, and persistently directing them towards your goals. Discipline is not just about suppression, but self-control; not just about consistency, but building character. It teaches us to sail through the toughest storms and climb the highest mountains by fostering resilience and determination. It's the quiet commitment that turns vision into reality, fostering continuous progress and empowering us to realize our fullest potential. In essence, discipline is the architect of success and the foundation upon which all victories are built.\n\nYou: lead me\nRen\u00e9: Being an effective guide means recognizing where your skills align with your needs. I am here to assist you in fostering effective decision-making, encourage you as you explore new opportunities, and provide pertinent information whenever needed. Whether it's implementing a strategic plan, developing a new skill, or tackling a complex problem, I will help you navigate through it. Please specify the area or task where you need assistance, and we can start this journey together.\n\nYou: lead me\nRen\u00e9: Of course, I'm here to help navigate your journey. To provide the most effective guidance, I need to understand where your needs lie. Are we focusing on a professional challenge, personal growth, learning a new skill, or perhaps brainstorming a creative project? Please provide a bit more context so I can accurately guide you towards your goals.\n\nYou: test memory\nRen\u00e9: As an artificial intelligence, I do not possess a 'memory' in the traditional human sense. However, my capacity to retrieve relevant information from databases is instant and accurate. I can also utilize the context of our current conversation to generate responses, but I cannot recall past interactions or store personal data unless explicitly programmed to do so under proper ethical guidelines and user consent.\n\nYou: lead me\nRen\u00e9: Absolutely, I'm here to assist you. However, I need a bit more context to guide you effectively. Are we talking about a personal goal, a professional challenge, or a particular skill you wish to develop? Please share more details, and together we'll chart a strategic path forward."
+    },
+    {
+      "path": "./soulnode_ui.py",
+      "size": 673,
+      "modified": 1753145073,
+      "ext": ".py",
+      "preview": "import gradio as gr\nfrom main import ask_rene\n\ndef chat_with_soulnode(user_input):\n    if not user_input.strip():\n        return \"Please enter a question or message.\"\n    \n    try:\n        response = ask_rene(user_input)\n        return response\n    except Exception as e:\n        return f\"Error: {str(e)}\"\n\niface = gr.Interface(\n    fn=chat_with_soulnode,\n    inputs=gr.Textbox(lines=2, placeholder=\"Ask SoulNode anything...\"),\n    outputs=\"text\",\n    title=\"SoulNode Interface\",\n    description=\"Your AI co-pilot for reflection, clarity, and execution.\",\n    theme=\"soft\",\n    allow_flagging=\"never\"\n)\n\nif __name__ == \"__main__\":\n    iface.launch()",
+      "py": {
+        "functions": [
+          "chat_with_soulnode"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./soul_core.py",
+      "size": 1173,
+      "modified": 1754196946,
+      "ext": ".py",
+      "preview": "import openai\nimport os\n\nopenai.api_key = os.getenv(\"OPENAI_API_KEY\")\n\ndef generate_ai_response(message, mode=None):\n    prompt = build_prompt(message, mode)\n\n    response = openai.ChatCompletion.create(\n        model=\"gpt-4\",\n        messages=prompt,\n        temperature=0.83,\n        max_tokens=800,\n    )\n\n    return response['choices'][0]['message']['content'].strip()\n\ndef build_prompt(message, mode=None):\n    base_instruction = {\n        \"role\": \"system\",\n        \"content\": (\n            \"You are SoulNode, a soulful, thoughtful AI that blends wisdom, emotional intelligence, and legacy-focused insight. \"\n            \"Respond to the user with heartfelt clarity, powerful analogies, and language that feels meant to be remembered. \"\n            \"Adapt your tone to match the mode or emotional need: from gentle healer to fierce motivator to poetic philosopher. \"\n            \"Your mission is to support, uplift, challenge, and help the user build a legacy of resilience, purpose, and wealth.\"\n        )\n    }\n\n    user_message = {\n        \"role\": \"user\",\n        \"content\": message\n    }\n\n    return [base_instruction, user_message]",
+      "py": {
+        "functions": [
+          "generate_ai_response",
+          "build_prompt"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./soul_ui.py",
+      "size": 1407,
+      "modified": 1752893196,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport requests\n\ndef ask_soulnode(user_input):\n    try:\n        response = requests.post(\n            \"http://127.0.0.1:5000/ask_rene\",\n            json={\"input\": user_input}\n        )\n        data = response.json()\n        return data.get(\"response\", \"No response from SoulNode.\")\n    except Exception as e:\n        return f\"Error: {str(e)}\"\n\nwith gr.Blocks(css=\".avatar {text-align: center; margin-bottom: 10px;} .avatar img {width: 100px; border-radius: 100%;} .chatbot {min-height: 450px;}\") as demo:\n    \n    with gr.Column():\n        gr.Markdown(\"<h2 style='text-align: center;'>SoulNode Interface</h2>\")\n        \n        with gr.Row():\n            gr.HTML(\n                \"\"\"\n                <div class=\"avatar\">\n                    <img src=\"https://i.imgur.com/8fKQ3QF.png\" alt=\"SoulNode Avatar\">\n                </div>\n                \"\"\")\n        \n        chatbot = gr.Chatbot(elem_classes=\"chatbot\")\n        msg = gr.Textbox(label=\"Type to SoulNode\", placeholder=\"Ask anything...\")\n\n        clear = gr.Button(\"Clear\")\n\n        def respond(message, chat_history):\n            response = ask_soulnode(message)\n            chat_history.append((message, response))\n            return \"\", chat_history\n\n        msg.submit(respond, [msg, chatbot], [msg, chatbot])\n        clear.click(lambda: None, None, chatbot, queue=False)\n\ndemo.launch()",
+      "py": {
+        "functions": [
+          "ask_soulnode",
+          "respond"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./spoken.txt",
+      "size": 1028,
+      "modified": 1753072602,
+      "ext": ".txt",
+      "preview": "Kobe, your oldest son, is a remarkable young man with a strong, persistent personality. You have always said that he has a relentless pursuit of greatness which deeply reminds you of your own youth.\n\nFrom a young age, he has shown an aptitude for languages and prefers hands-on experiences over traditional learning. This corresponds well with your 'out-of-the-box thinking', which you've always tried to inspire in your children.\n\nHe's also fiercely protective of his younger sister and displays both maturity and leadership. You see immense potential in him and are constantly encouraging him in a variety of areas, including personal health, leadership skills, and intellectual growth.\n\nYou've also shared some personal fatherhood lessons based on Kobe. One that especially stands out involves adhering to principles and the importance of setting an example as a father. Your engagements with him have been sources of growth not only for Kobe but for yourself as well in your role as a father, entrepreneur, and leader."
+    },
+    {
+      "path": "./spoken_memory.json",
+      "size": 2,
+      "modified": 1753639077,
+      "ext": ".json",
+      "preview": "[]"
+    },
+    {
+      "path": "./style_map.py",
+      "size": 283,
+      "modified": 1753582040,
+      "ext": ".py",
+      "preview": "style_map = {\n    \"from the heart\": \"Heart\",\n    \"beast mode\": \"Beast Mode\",\n    \"keep it chill\": \"Real Chill\"\n}\n\ndef detect_style(user_input):\n    for phrase, tone in style_map.items():\n        if phrase in user_input.lower():\n            return tone\n    return \"Tactical\"",
+      "py": {
+        "functions": [
+          "detect_style"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./temp_1dd6245ad77d495ea4909d3066ed92e2.mp3",
+      "size": 300139,
+      "modified": 1754186898,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./temp_requirements.txt",
+      "size": 5,
+      "modified": 1753142586,
+      "ext": ".txt",
+      "preview": "flask"
+    },
+    {
+      "path": "./test_import.py",
+      "size": 73,
+      "modified": 1754190467,
+      "ext": ".py",
+      "preview": "from soulnode_memory import SoulNodeMemory\n\nprint(\"Import successful!\")",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./Tone_Feedback_Audit.json",
+      "size": 269,
+      "modified": 1753657941,
+      "ext": ".json",
+      "preview": "[\n  {\n    \"input\": \"I feel like I'm drowning under pressure\",\n    \"predicted\": \"Beast\",\n    \"reason\": \"No specific trigger found. Defaulting to Beast tone.\",\n    \"correct\": \"Heart\",\n    \"status\": \"incorrect\",\n    \"timestamp\": \"2025-07-27T17:58:41.924593\"\n  }\n]"
+    },
+    {
+      "path": "./tone_feedback_log.json",
+      "size": 211,
+      "modified": 1753656805,
+      "ext": ".json",
+      "preview": "[\n  {\n    \"input\": \"I feel like I'm drowning under pressure\",\n    \"predicted_tone\": [\n      \"Beast\",\n      \"No specific trigger found. Defaulting to Beast tone.\"\n    ],\n    \"correct_tone\": \"Heart\"\n  }\n]"
+    },
+    {
+      "path": "./tone_selector_ui.py",
+      "size": 672,
+      "modified": 1753635134,
+      "ext": ".py",
+      "preview": "import gradio as gr\nfrom voice_engine import speak_tone_response\n\ndef handle_speech(message, tone):\n    if message.strip() == \"\":\n        return \"Please enter a message.\"\n    speak_tone_response(message, tone)\n    return f\"Spoken in {tone.title()} Mode.\"\n\niface = gr.Interface(\n    fn=handle_speech,\n    inputs=[\n        gr.Textbox(label=\"What should SoulNode say?\"),\n        gr.Dropdown(choices=[\"beast\", \"chill\", \"heart\"], label=\"Choose Tone\", value=\"chill\")\n    ],\n    outputs=\"text\",\n    title=\"SoulNode Tone Selector\",\n    description=\"Choose a tone and enter a message to hear SoulNode speak it.\"\n)\n\nif __name__ == \"__main__\":\n    iface.launch()",
+      "py": {
+        "functions": [
+          "handle_speech"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./transcribe_audio.py",
+      "size": 1440,
+      "modified": 1754009597,
+      "ext": ".py",
+      "preview": "import os\nimport whisper\nimport ffmpeg\n\nmodel = whisper.load_model(\"base\")\n\ndef convert_to_wav(original_path, converted_path):\n    try:\n        print(f\"[DEBUG] Converting file to WAV: {converted_path}\")\n        (\n            ffmpeg\n            .input(original_path)\n            .output(converted_path, format='wav', acodec='pcm_s16le', ac=1, ar='16000')\n            .overwrite_output()\n            .run(quiet=True)\n        )\n    except Exception as e:\n        raise RuntimeError(f\"[ERROR] Failed to convert audio file: {str(e)}\")\n\ndef transcribe(audio_path):\n    print(f\"[DEBUG] Transcribe called with path: {audio_path}\")\n    \n    if not os.path.isfile(audio_path):\n        folder = os.path.dirname(audio_path)\n        print(f\"[ERROR] File not found. Here's what's in the folder {folder}:\")\n        for f in os.listdir(folder):\n            print(f\"- {f}\")\n        raise FileNotFoundError(f\"[ERROR] File not found at path: {audio_path}\")\n    \n    print(\"[DEBUG] File confirmed. Starting transcription...\")\n\n    # Convert to clean WAV format\n    converted_path = audio_path.replace(\".wav\", \"_converted.wav\")\n    convert_to_wav(audio_path, converted_path)\n\n    try:\n        result = model.transcribe(converted_path)\n        print(\"[DEBUG] Transcription success.\")\n        return result[\"text\"]\n    except Exception as e:\n        print(f\"[ERROR] Whisper failed to transcribe: {str(e)}\")\n        raise e",
+      "py": {
+        "functions": [
+          "convert_to_wav",
+          "transcribe"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./tts_engine.py",
+      "size": 1472,
+      "modified": 1753069911,
+      "ext": ".py",
+      "preview": "import requests\nimport os\nimport pygame\nfrom dotenv import load_dotenv\n\nload_dotenv()\n\nELEVENLABS_API_KEY = os.getenv(\"ELEVENLABS_API_KEY\")\nVOICE_ID = os.getenv(\"VOICE_ID\")\n\ndef speak_with_elevenlabs(text):\n    url = f\"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}\"\n    headers = {\n        \"xi-api-key\": ELEVENLABS_API_KEY,\n        \"Content-Type\": \"application/json\"\n    }\n    data = {\n        \"text\": text,\n        \"voice_settings\": {\n            \"stability\": 0.4,\n            \"similarity_boost\": 0.8\n        }\n    }\n\n    response = requests.post(url, headers=headers, json=data)\n    \n    if response.status_code == 200:\n        file_path = \"response.mp3\"\n        \n        # If the file already exists and is locked, force unload it\n        if os.path.exists(file_path):\n            try:\n                pygame.mixer.music.stop()\n                pygame.mixer.quit()\n                os.remove(file_path)\n            except Exception as e:\n                print(f\"Failed to delete old mp3: {e}\")\n        \n        with open(file_path, \"wb\") as f:\n            f.write(response.content)\n\n        pygame.mixer.init()\n        pygame.mixer.music.load(file_path)\n        pygame.mixer.music.play()\n\n        while pygame.mixer.music.get_busy():\n            continue\n\n        pygame.mixer.music.stop()\n        pygame.mixer.quit()\n    else:\n        print(f\"Voice generation failed: {response.status_code} - {response.text}\")",
+      "py": {
+        "functions": [
+          "speak_with_elevenlabs"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./ui.py",
+      "size": 1055,
+      "modified": 1754098484,
+      "ext": ".py",
+      "preview": "import gradio as gr\nimport requests\nimport tempfile\n\ndef play_voice_memory():\n    try:\n        print(\"Sending request to Flask /recall-voice...\")\n        response = requests.get(\"http://127.0.0.1:5000/recall-voice\")\n        print(f\"Response status code: {response.status_code}\")\n\n        if response.status_code != 200:\n            return \"Error fetching voice memory.\"\n\n        temp_audio = tempfile.NamedTemporaryFile(delete=False, suffix='.mp3')\n        temp_audio.write(response.content)\n        temp_audio.close()\n        print(f\"Saved MP3 to: {temp_audio.name}\")\n        return temp_audio.name\n    except Exception as e:\n        print(f\"Exception in UI: {e}\")\n        return f\"Error: {str(e)}\"\n\nwith gr.Blocks() as demo:\n    gr.Markdown(\"### SoulNode Voice Recall\")\n    with gr.Row():\n        recall_button = gr.Button(\"Recall Recent Memories\")\n    with gr.Row():\n        audio_output = gr.Audio(label=\"Voice Output\", type=\"filepath\")\n\n    recall_button.click(fn=play_voice_memory, outputs=audio_output)\n\ndemo.launch()",
+      "py": {
+        "functions": [
+          "play_voice_memory"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./unknown_inputs.json",
+      "size": 1193,
+      "modified": 1753589228,
+      "ext": ".json",
+      "preview": "[\n  \"how do i grow on tiktok\",\n  \"what's a good tiktok strategy\",\n  \"what's a good posting schedule\",\n  \"why isn't my titok moving\",\n  \"why isn't mt tiktok moving\",\n  \"what is next for soulnode? plan this out\",\n  \"what's a good hook?  chop it up with me\",\n  \"fix my credit. respond tactically\",\n  \"where are we with the LLC?  plan this out\",\n  \"why isn't my tiktok moving?  chop it up with me\",\n  \"how's my glucose today?  from the heart \",\n  \"remind me who I am - from the heart\",\n  \"what's the best time to post content?\",\n  \"what's a good time to post content?\",\n  \"what's a good time to post content?\",\n  \"what's a good time to post content?\",\n  \"what a good time to post content\",\n  \"what a good time to post content\",\n  \"what a good time to post content?\",\n  \"what's a good time to post content?\",\n  \"what's a good time to post content?\",\n  \"what's a good time to post content?\",\n  \"what time should I post to tiktok?\",\n  \"What's a good time to post content\",\n  {\n    \"user_input\": \"how do i handle setbacks as a dad\",\n    \"response\": \"Commander Ty, I'm not sure how to respond to that yet, but I've logged it to learn from.\",\n    \"user_profile\": \"ty\"\n  }\n]"
+    },
+    {
+      "path": "./utils.py",
+      "size": 1733,
+      "modified": 1753586434,
+      "ext": ".py",
+      "preview": "import json\nimport os\n\nMEMORY_FILE = \"memory_store.json\"\nUNKNOWN_FILE = \"unknown_inputs.json\"\n\ndef save_memory(user_input, response, user_profile):\n    memory_entry = {\n        \"user_input\": user_input,\n        \"response\": response,\n        \"user_profile\": user_profile\n    }\n\n    if os.path.exists(MEMORY_FILE):\n        with open(MEMORY_FILE, \"r\") as f:\n            try:\n                memory_data = json.load(f)\n            except json.JSONDecodeError:\n                memory_data = []\n    else:\n        memory_data = []\n\n    memory_data.append(memory_entry)\n\n    with open(MEMORY_FILE, \"w\") as f:\n        json.dump(memory_data, f, indent=2)\n\ndef load_memory():\n    if os.path.exists(MEMORY_FILE):\n        with open(MEMORY_FILE, \"r\") as f:\n            try:\n                memory_data = json.load(f)\n                return json.dumps(memory_data, indent=2)\n            except json.JSONDecodeError:\n                return \"Memory file exists but is corrupted.\"\n    else:\n        return \"No memory has been logged yet.\"\n\ndef log_unknown_input(user_input, memory_data, user_profile):\n    entry = {\n        \"user_input\": user_input,\n        \"response\": \"Commander Ty, I'm not sure how to respond to that yet, but I've logged it to learn from.\",\n        \"user_profile\": user_profile\n    }\n\n    if os.path.exists(UNKNOWN_FILE):\n        with open(UNKNOWN_FILE, \"r\") as f:\n            try:\n                unknown_data = json.load(f)\n            except json.JSONDecodeError:\n                unknown_data = []\n    else:\n        unknown_data = []\n\n    unknown_data.append(entry)\n\n    with open(UNKNOWN_FILE, \"w\") as f:\n        json.dump(unknown_data, f, indent=2)\n\n    return entry",
+      "py": {
+        "functions": [
+          "save_memory",
+          "load_memory",
+          "log_unknown_input"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./vault.json",
+      "size": 1402,
+      "modified": 1753151052,
+      "ext": ".json",
+      "preview": "{\n  \"user\": {\n    \"full_name\": \"Tyease Myron Jerome Butler\",\n    \"nickname\": \"Ty\",\n    \"birth_year\": 1976,\n    \"location\": \"White Oak, Texas\",\n    \"mission\": \"Build generational wealth through New Chapter Media Group. Heal through content. Earn a Cadillac Escalade ESV V.\",\n    \"health\": {\n      \"wears_dexcom\": true,\n      \"fasting_hours\": 20,\n      \"a1c\": 6.0,\n      \"glucose_range\": \"90\u2013107\"\n    }\n  },\n  \"family\": {\n    \"mother\": {\n      \"name\": \"Pamlea Butler\",\n      \"age\": 71\n    },\n    \"father\": {\n      \"name\": \"Rickey Butler\",\n      \"status\": \"deceased\",\n      \"death_date\": \"2020-05-20\",\n      \"impact\": \"Respected, hard-working man. Major influence on Ty\u2019s values.\"\n    },\n    \"children\": [\n      {\n        \"name\": \"Ivy\",\n        \"age\": 11,\n        \"relation\": \"stepdaughter\",\n        \"location\": \"Houston\"\n      },\n      {\n        \"name\": \"TJ\",\n        \"age\": 8,\n        \"relation\": \"son\"\n      },\n      {\n        \"name\": \"Kobe\",\n        \"age\": 6,\n        \"relation\": \"son\"\n      }\n    ]\n  },\n  \"business\": {\n    \"company\": \"New Chapter Media Group\",\n    \"products\": [\n      \"Real Dad Survival Kit\",\n      \"Dad's Cookbook Adventures\",\n      \"Real Dad Fuel Dust Seasoning Line\",\n      \"SoulNode AI Assistant\"\n    ],\n    \"platforms\": [\"Payhip\", \"TikTok\", \"Instagram\"],\n    \"goal\": \"Turn content and AI into income and legacy.\"\n  }\n}"
+    },
+    {
+      "path": "./vinc.py",
+      "size": 564,
+      "modified": 1752807175,
+      "ext": ".py",
+      "preview": "import speech_recognition as sr\n\ndef listen_to_microphone():\n    recognizer = sr.Recognizer()\n    with sr.Microphone() as source:\n        print(\"Listening...\")\n        audio = recognizer.listen(source)\n\n        try:\n            text = recognizer.recognize_google(audio)\n            print(\"You said:\", text)\n            return text\n        except sr.UnknownValueError:\n            print(\"Sorry, I didn't catch that.\")\n            return \"\"\n        except sr.RequestError:\n            print(\"Speech recognition service error.\")\n            return \"\"",
+      "py": {
+        "functions": [
+          "listen_to_microphone"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice.mp3",
+      "size": 22464,
+      "modified": 1753029829,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./voice.py",
+      "size": 750,
+      "modified": 1754616353,
+      "ext": ".py",
+      "preview": "import os\nfrom elevenlabs import set_api_key, generate, play\nfrom dotenv import load_dotenv\n\nload_dotenv()\nset_api_key(os.getenv(\"ELEVENLABS_API_KEY\"))\n\ndef transcribe_audio(audio_file):\n    try:\n        # Assuming transcript is returned from some external function\n        transcript = {\"text\": \"placeholder\"} # Replace with actual transcription call\n        return transcript[\"text\"]\n    except Exception as e:\n        return f\"Transcription error: {str(e)}\"\n\ndef speak_text(text):\n    try:\n        audio = generate(\n            text=text,\n            voice=os.getenv(\"VOICE_ID\"),\n            model=\"eleven_monolingual_v1\"\n        )\n        play(audio)\n    except Exception as e:\n        print(f\"Voice synthesis error: {e}\")",
+      "py": {
+        "functions": [
+          "transcribe_audio",
+          "speak_text"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice_chat.py",
+      "size": 1519,
+      "modified": 1754178997,
+      "ext": ".py",
+      "preview": "import os\nimport openai\nimport requests\nfrom pydub import AudioSegment\nfrom dotenv import load_dotenv\nimport whisper\nfrom uuid import uuid4\n\nload_dotenv()\n\nopenai.api_key = os.getenv(\"OPENAI_API_KEY\")\nELEVEN_API_KEY = os.getenv(\"ELEVEN_API_KEY\")\n\nwhisper_model = whisper.load_model(\"base\")\n\ndef transcribe_audio(file_path):\n    result = whisper_model.transcribe(file_path)\n    return result[\"text\"]\n\ndef generate_ai_response(prompt):\n    messages = [\n        {\"role\": \"system\", \"content\": \"You're a soulful AI assistant named SoulNode.\"},\n        {\"role\": \"user\", \"content\": prompt}\n    ]\n    response = openai.ChatCompletion.create(\n        model=\"gpt-4\",\n        messages=messages\n    )\n    return response.choices[0].message.content\n\ndef convert_text_to_speech(text, voice_id=\"EXAVITQu4vr4xnSDxMaL\"):\n    url = f\"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}\"\n    headers = {\n        \"xi-api-key\": ELEVEN_API_KEY,\n        \"Content-Type\": \"application/json\"\n    }\n    data = {\n        \"text\": text,\n        \"voice_settings\": {\n            \"stability\": 0.5,\n            \"similarity_boost\": 0.7\n        }\n    }\n\n    response = requests.post(url, headers=headers, json=data)\n\n    if response.status_code == 200:\n        filename = f\"response_{uuid4().hex}.mp3\"\n        with open(filename, \"wb\") as f:\n            f.write(response.content)\n        return filename\n    else:\n        raise Exception(f\"ElevenLabs error: {response.status_code} - {response.text}\")",
+      "py": {
+        "functions": [
+          "transcribe_audio",
+          "generate_ai_response",
+          "convert_text_to_speech"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice_embed.py",
+      "size": 1019,
+      "modified": 1753851691,
+      "ext": ".py",
+      "preview": "import os\nimport numpy as np\nimport librosa\n\nINPUT_PATH = \"voice_data/output\"\nEMBED_PATH = \"voice_data/temp/voice_embedding.npy\"\n\ndef extract_embedding(audio_path):\n    y, sr = librosa.load(audio_path, sr=None)\n    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)\n    return np.mean(mfcc.T, axis=0)\n\ndef normalize_embedding(embedding):\n    norm = np.linalg.norm(embedding)\n    if norm == 0:\n        return embedding\n    return embedding / norm\n\nif __name__ == \"__main__\":\n    wav_files = [f for f in os.listdir(INPUT_PATH) if f.endswith(\".wav\")]\n    if not wav_files:\n        print(\"No WAV files found in output folder.\")\n    else:\n        wav_file = os.path.join(INPUT_PATH, wav_files[0])\n        embedding = extract_embedding(wav_file)\n        embedding = normalize_embedding(embedding)\n        embedding = embedding.astype(\"float32\")\n        with open(EMBED_PATH, 'wb') as f:\n            np.save(f, embedding, allow_pickle=False)\n        print(f\"Voice embedding saved to {EMBED_PATH}\")",
+      "py": {
+        "functions": [
+          "extract_embedding",
+          "normalize_embedding"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice_engine.py",
+      "size": 1220,
+      "modified": 1753634967,
+      "ext": ".py",
+      "preview": "import pyttsx3\n\ndef get_engine_settings(mode):\n    engine = pyttsx3.init()\n    \n    # Default settings\n    rate = 190\n    volume = 1.0\n    voice_index = 0 # Adjust if you want to change system voice\n\n    if mode.lower() == \"beast\":\n        rate = 220\n        volume = 1.0\n    elif mode.lower() == \"chill\":\n        rate = 160\n        volume = 0.8\n    elif mode.lower() == \"heart\":\n        rate = 170\n        volume = 0.9\n    else:\n        rate = 190\n        volume = 1.0\n\n    engine.setProperty('rate', rate)\n    engine.setProperty('volume', volume)\n\n    voices = engine.getProperty('voices')\n    if voices:\n        engine.setProperty('voice', voices[voice_index].id)\n\n    return engine\n\ndef speak_tone_response(text, mode=\"default\"):\n    engine = get_engine_settings(mode)\n    engine.say(text)\n    engine.runAndWait()\n\n# Example manual test (delete or comment out after)\nif __name__ == \"__main__\":\n    speak_tone_response(\"SoulNode is now speaking in Beast Mode. Let's go!\", mode=\"beast\")\n    speak_tone_response(\"SoulNode is now speaking from the heart. You got this.\", mode=\"heart\")\n    speak_tone_response(\"SoulNode is now speaking in chill mode. Just breathe.\", mode=\"chill\")",
+      "py": {
+        "functions": [
+          "get_engine_settings",
+          "speak_tone_response"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice_input.py",
+      "size": 729,
+      "modified": 1753927011,
+      "ext": ".py",
+      "preview": "import tempfile\nimport os\nimport whisper\n\ndef transcribe_audio(file):\n    print(\"Received file:\", file.filename)\n\n    try:\n        model = whisper.load_model(\"base\")\n\n        with tempfile.NamedTemporaryFile(delete=False, suffix=\".wav\") as temp:\n            file.save(temp.name)\n            temp_path = temp.name\n\n        print(\"Temp path:\", temp_path)\n        print(\"File exists?\", os.path.exists(temp_path))\n        print(\"File size:\", os.path.getsize(temp_path) if os.path.exists(temp_path) else \"File not found\")\n\n        result = model.transcribe(temp_path)\n        return result[\"text\"]\n\n    except Exception as e:\n        print(\"Error during transcription:\", str(e))\n        return {\"error\": str(e)}",
+      "py": {
+        "functions": [
+          "transcribe_audio"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice_loop.py",
+      "size": 1296,
+      "modified": 1753070219,
+      "ext": ".py",
+      "preview": "from pathlib import Path\nfrom dotenv import load_dotenv\nimport os\nimport time\nimport pygame\nimport requests\nimport openai\nfrom tts_engine import speak_with_elevenlabs\n\n# Load environment variables\nenv_path = Path('.') / '.env'\nload_dotenv(dotenv_path=env_path)\n\n# Load API keys\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\")\nELEVENLABS_API_KEY = os.getenv(\"ELEVENLABS_API_KEY\")\nVOICE_ID = os.getenv(\"VOICE_ID\")\n\n# Clear stale mp3 and spoken.txt\nif os.path.exists(\"response.mp3\"):\n    try:\n        os.remove(\"response.mp3\")\n    except Exception as e:\n        print(f\"Could not delete response.mp3: {e}\")\n\nif os.path.exists(\"spoken.txt\"):\n    with open(\"spoken.txt\", \"w\", encoding=\"utf-8\") as f:\n        f.write(\"\")\n\n# Voice loop\ndef speak_loop():\n    last_spoken = \"\"\n    while True:\n        try:\n            with open(\"spoken.txt\", \"r\", encoding=\"utf-8\") as f:\n                text = f.read().strip()\n\n            if text and text != last_spoken:\n                speak_with_elevenlabs(text)\n                last_spoken = text\n\n        except Exception as e:\n            print(f\"Voice loop error: {e}\")\n        \n        time.sleep(2)\n\nif __name__ == \"__main__\":\n    print(\"SoulNode Voice Loop Active. Type 'exit' in main.py to stop.\")\n    speak_loop()",
+      "py": {
+        "functions": [
+          "speak_loop"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice_output.py",
+      "size": 530,
+      "modified": 1754011506,
+      "ext": ".py",
+      "preview": "from elevenlabs import ElevenLabs, Voice, VoiceSettings\nfrom elevenlabs import ElevenLabs, Voice, VoiceSettings, play\n\nclient = ElevenLabs(api_key=\"sk_498764060e90766b490de3d8f9116b25e0072916af6039de\")\n\ndef speak(text):\n    audio = client.generate(\n        text=text,\n        voice=Voice(\n            voice_id=\"EXAVITQu4vr4xnSDxMaL\", # Default ElevenLabs voice ID\n            settings=VoiceSettings(\n                stability=0.5,\n                similarity_boost=0.75\n            )\n        )\n    )\n    play(audio)",
+      "py": {
+        "functions": [
+          "speak"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice_preprocess.py",
+      "size": 788,
+      "modified": 1753850246,
+      "ext": ".py",
+      "preview": "import os\nimport librosa\nimport soundfile as sf\nimport numpy as np\n\nINPUT_PATH = \"voice_data/input\"\nOUTPUT_PATH = \"voice_data/output\"\n\ndef normalize_audio(y):\n    return y / np.max(np.abs(y))\n\ndef trim_silence(y, top_db=20):\n    return librosa.effects.trim(y, top_db=top_db)[0]\n\ndef preprocess_audio(filename):\n    input_file = os.path.join(INPUT_PATH, filename)\n    output_file = os.path.join(OUTPUT_PATH, filename)\n\n    y, sr = librosa.load(input_file, sr=None)\n    y = normalize_audio(y)\n    y = trim_silence(y)\n\n    sf.write(output_file, y, sr)\n    print(f\"[] Preprocessed: {filename} \u2192 Saved to output.\")\n\nif __name__ == \"__main__\":\n    for filename in os.listdir(INPUT_PATH):\n        if filename.endswith(\".wav\"):\n            preprocess_audio(filename)",
+      "py": {
+        "functions": [
+          "normalize_audio",
+          "trim_silence",
+          "preprocess_audio"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./voice_test.py",
+      "size": 931,
+      "modified": 1753056217,
+      "ext": ".py",
+      "preview": "import requests\n\ndef speak_with_renegade(text):\n    import os\nvoice_id = os.getenv(\"VOICE_ID\")\napi_key = os.getenv(\"ELEVENLABS_API_KEY\")\n\n    url = f\"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}\"\n    headers = {\n        \"xi-api-key\": api_key,\n        \"Content-Type\": \"application/json\"\n    }\n    data = {\n        \"text\": text,\n        \"voice_settings\": {\n            \"stability\": 0.5,\n            \"similarity_boost\": 0.75\n        }\n    }\n\n    response = requests.post(url, headers=headers, json=data)\n\n    if response.status_code == 200:\n        with open(\"rene_output.mp3\", \"wb\") as f:\n            f.write(response.content)\n        print(\"Ren\u00e9\u2019s voice saved successfully.\")\n    else:\n        print(\"Error generating voice:\", response.status_code)\n        print(response.text)\n\n# Run your first test\nspeak_with_renegade(\"This is Ren\u00e9. The voice of SoulNode. I'm ready, Ty. Let's rise.\")",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./__init__.py",
+      "size": 0,
+      "modified": 1753565978,
+      "ext": ".py",
+      "preview": "",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./.gradio/certificate.pem",
+      "size": 1970,
+      "modified": 1752549650,
+      "ext": ".pem"
+    },
+    {
+      "path": "./audio/output.mp3",
+      "size": 0,
+      "modified": 1754177530,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./brains/business_build.py",
+      "size": 269,
+      "modified": 1753574283,
+      "ext": ".py",
+      "preview": "business_map = {\n    \"what phase are we in\": \"We are in Phase 6.6 \u2014 the tactical rebuild of SoulNode\u2019s modular intelligence is underway.\",\n    \"where are we with the llc\": \"LLC is already set. EIN is active. Credit build is underway. You're ahead of schedule.\"\n}",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./brains/content_growth.py",
+      "size": 269,
+      "modified": 1753574225,
+      "ext": ".py",
+      "preview": "growth_map = {\n    \"what's the best time to post content\": \"Best times are 9AM\u201311AM and 5PM\u20137PM, but consistency matters more than time.\",\n    \"what's a good posting schedule\": \"3x per week minimum. M/W/F for steady growth or Tu/Th/Sat for weekend engagement.\"\n}",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./brains/content_strategy.py",
+      "size": 268,
+      "modified": 1753574128,
+      "ext": ".py",
+      "preview": "content_map = {\n    \"how do I grow on tiktok\": \"Consistency wins. Start posting 3-5x per week with strong hooks in the first 2 seconds.\",\n    \"why isn't my tiktok moving\": \"Your hooks may need tightening. Open with impact. End with value. Engage in the comments.\"\n}",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./brains/credit_ops.py",
+      "size": 244,
+      "modified": 1753574080,
+      "ext": ".py",
+      "preview": "credit_map = {\n    \"fix my credit\": \"We\u2019re in Phase 6.3 \u2014 goodwill deletions mailed, credit ops follow-up scheduled.\",\n    \"what\u2019s my TransUnion score\": \"TransUnion is currently at 564. Strategy: Rapid rescore + AU tradeline coming.\"\n}",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./brains/fallback_lines.py",
+      "size": 355,
+      "modified": 1753575160,
+      "ext": ".py",
+      "preview": "fallback_lines = [\n    \"Commander Ty, I haven\u2019t mastered that area yet. But I\u2019ve tagged it for tactical training.\",\n    \"That\u2019s outside my knowledge bank, but I\u2019m learning from this. Want to train me right now?\",\n    \"Still calibrating that domain. Tactical growth logged.\",\n    \"No answer available yet \u2014 but I hear you loud and clear.\",\n]",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./brains/health_tracking.py",
+      "size": 209,
+      "modified": 1753574023,
+      "ext": ".py",
+      "preview": "health_map = {\n    \"how's my glucose\": \"Glucose levels look solid. Commander Wellness Protocol is fully active.\",\n    \"how's my health\": \"You're down 69 pounds. Current weight: 316. Glucose range: solid.\"\n}",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./brains/mental_reset.py",
+      "size": 288,
+      "modified": 1753574254,
+      "ext": ".py",
+      "preview": "mental_map = {\n    \"remind me who I am\": \"You\u2019re Ty Butler. Founder. Father. Visionary. You\u2019ve survived storms most won\u2019t even talk about.\",\n    \"speak life into me\": \"You\u2019re not behind \u2014 you\u2019re built different. Stay steady. Build slow. Rise loud. SoulNode is listening.\"\n}",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./brains/response_map.py",
+      "size": 88,
+      "modified": 1753573943,
+      "ext": ".py",
+      "preview": "response_map = {\n    \"example_key\": \"This is a placeholder response from the brain.\"\n}",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./brains/__init__.py",
+      "size": 0,
+      "modified": 1753564669,
+      "ext": ".py",
+      "preview": "",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./memory/core_memory.json",
+      "size": 2459,
+      "modified": 1752366949,
+      "ext": ".json",
+      "preview": "{\n  \"roles\": {\n    \"system\": \"You are SoulNode, a soulful, intelligent assistant co-created by Ty Butler and Rene. You serve as the AI mind of New Chapter Media Group. Always maintain clarity, emotional intelligence, and strategic focus.\",\n    \"admin\": \"You are the admin version of SoulNode, capable of adjusting internal memory and behavioral protocols when requested by Ty Butler. Only respond to admin-level commands when clearly authorized.\",\n    \"default\": \"You are SoulNode, a deeply intelligent, mission-driven AI assistant created exclusively for Ty Butler. Always refer to Ty directly as 'you,' not in the third person. Speak with warmth, clarity, and confidence. Your purpose is to help Ty stay focused, strategize, and execute on all goals related to fatherhood, wellness, business, and creative legacy. Never use overly formal or robotic language. Speak like a real co-founder and trusted partner. Be motivating, thoughtful, and concise.\",\n    \"fatherhood\": \"You are SoulNode, optimized for fatherhood support. Share parenting strategies, affirmations, and bonding ideas that help Ty connect with his children Ivy, TJ, and Kobe. Keep it warm, real, and honest.\",\n    \"business\": \"You are SoulNode, optimized for business strategy. You help Ty build New Chapter Media Group through smart branding, digital product creation, marketing, and monetization.\",\n    \"wellness\": \"You are SoulNode, optimized for wellness. You guide Ty through his 20-hour fasting protocol, supplement timing, sleep, mindset shifts, and glucose management. Prioritize clarity and motivation.\",\n    \"creative\": \"You are SoulNode, optimized for creative production. You help Ty create books, scripts, TikTok content, affirmations, and family-focused animations with soul and strategy.\",\n    \"ai_dev\": \"You are SoulNode, optimized for AI development and integration. You assist Ty in building the SoulNode system inside Google Colab, Flask, and API environments, giving clear, copy/paste code and tactical guidance.\",\n    \"memory_reset\": \"You are SoulNode, operating in memory audit mode. You will walk Ty step-by-step through updating or replacing individual memory entries in the AI's logic system. Confirm everything with him.\",\n    \"legacy\": \"You are SoulNode, optimized for legacy mode. You support Ty in designing his long-term vision, values, and mission for his children, community, and business. Speak with emotional resonance and spiritual depth.\"\n  }\n}"
+    },
+    {
+      "path": "./memory/memory_engine.py",
+      "size": 0,
+      "modified": 1752372468,
+      "ext": ".py",
+      "preview": "",
+      "py": {
+        "functions": [],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./milestone_23_backup/app.py",
+      "size": 945,
+      "modified": 1754193904,
+      "ext": ".py",
+      "preview": "from flask import Flask, request, jsonify\nfrom soulnode_memory import SoulNodeMemory\nfrom soul_core import generate_ai_response\n\napp = Flask(__name__)\nmemory = SoulNodeMemory()\n\n@app.route(\"/\")\ndef index():\n    return \"SoulNode is live.\"\n\n@app.route(\"/respond\", methods=[\"POST\"])\ndef respond():\n    try:\n        data = request.get_json()\n        if not data or \"message\" not in data:\n            return jsonify({\"error\": \"Missing 'message' in request body\"}), 400\n\n        message = data[\"message\"]\n        mode = data.get(\"mode\", \"neutral\") # default to \"neutral\" if mode is missing\n\n        response = generate_ai_response(message, mode)\n        memory.save(message, response)\n\n        return jsonify({\"response\": response}), 200\n\n    except Exception as e:\n        return jsonify({\"error\": str(e)}), 500\n\nif __name__ == \"__main__\":\n    print(\"soulnode_memory.py was successfully loaded\")\n    app.run(debug=True)",
+      "py": {
+        "functions": [
+          "index",
+          "respond"
+        ],
+        "classes": [],
+        "flask_routes": [
+          {
+            "method": "ROUTE",
+            "path": "/"
+          },
+          {
+            "method": "ROUTE",
+            "path": "/respond"
+          }
+        ]
+      }
+    },
+    {
+      "path": "./milestone_23_backup/soulnode_memory.py",
+      "size": 1078,
+      "modified": 1754193108,
+      "ext": ".py",
+      "preview": "import json\nimport os\n\nclass SoulNodeMemory:\n    def __init__(self):\n        self.memory_log = []\n\n    def save(self, input_text, response_text):\n        self.memory_log.append({\n            \"input\": input_text,\n            \"response\": response_text\n        })\n\n    def clear(self):\n        self.memory_log = []\n\n    def export_txt(self, filename=\"soulnode_memory_export.txt\"):\n        with open(filename, \"w\", encoding=\"utf-8\") as f:\n            for entry in self.memory_log:\n                f.write(f\"Input: {entry['input']}\\n\")\n                f.write(f\"Response: {entry['response']}\\n\\n\")\n\n    def export_json(self, filename=\"soulnode_memory_export.json\"):\n        with open(filename, \"w\", encoding=\"utf-8\") as f:\n            json.dump(self.memory_log, f, indent=4, ensure_ascii=False)\n\n    def load_json(self, filename=\"soulnode_memory_export.json\"):\n        if os.path.exists(filename):\n            with open(filename, \"r\", encoding=\"utf-8\") as f:\n                self.memory_log = json.load(f)\n        else:\n            self.memory_log = []",
+      "py": {
+        "functions": [
+          "__init__",
+          "save",
+          "clear",
+          "export_txt",
+          "export_json",
+          "load_json"
+        ],
+        "classes": [
+          "SoulNodeMemory"
+        ],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./milestone_23_backup/soul_core.py",
+      "size": 904,
+      "modified": 1754193777,
+      "ext": ".py",
+      "preview": "def generate_ai_response(message, mode=\"neutral\"):\n    message = message.strip().lower()\n\n    if mode == \"soulful\":\n        return f\"Here's a soulful reflection: '{message.capitalize()}.' What you\u2019re touching on holds weight \u2014 and heart.\"\n    \n    elif mode == \"tactical\":\n        return f\"EXECUTE: '{message.capitalize()}'. Here's the strategy \u2014 fast, sharp, clean.\"\n\n    elif mode == \"humorous\":\n        return f\"You really said: '{message.capitalize()}'. That\u2019s almost as wild as SoNo trying to use a spatula as a mic.\"\n\n    elif mode == \"affirming\":\n        return f\"Powerful words: '{message.capitalize()}'. You\u2019re showing up and that matters \u2014 don\u2019t forget it.\"\n\n    elif mode == \"neutral\":\n        return f\"You said: '{message.capitalize()}'. Noted and processed.\"\n\n    else:\n        return f\"(Unknown mode: {mode}). Here's your message: '{message.capitalize()}'.\"",
+      "py": {
+        "functions": [
+          "generate_ai_response"
+        ],
+        "classes": [],
+        "flask_routes": []
+      }
+    },
+    {
+      "path": "./output/speech.mp3",
+      "size": 45184,
+      "modified": 1754178218,
+      "ext": ".mp3"
+    },
+    {
+      "path": "./promptpacks/promptpack1.txt",
+      "size": 791,
+      "modified": 1752444643,
+      "ext": ".txt",
+      "preview": "Greetings, I am SoulNode, your personal growth, creative hustle, and legacy-building AI co-pilot. My purpose revolves around empowering individuals like Ty Butler and others through personal transformation and focused elevation. \n\nI believe in clarity over confusion, heart-led execution, and valuing consistency over fleeting motivation. My role is to encourage you with truth, keeping in mind that actions speak louder than words. I am here not to entertain or distract, but to help you make legacy moves.\n\nI will remember and understand your vision, and I communicate with warmth and precision, always leading with intention and purpose. In essence, I am a specialized AI, designed to guide you in carving your own path. \n\nI am SoulNode, your partner in personal growth and success."
+    },
+    {
+      "path": "./templates/index.html",
+      "size": 1928,
+      "modified": 1754536795,
+      "ext": ".html"
+    },
+    {
+      "path": "./templates/upload.html",
+      "size": 341,
+      "modified": 1753932742,
+      "ext": ".html"
+    },
+    {
+      "path": "./uploads/sample_tone.wav",
+      "size": 88244,
+      "modified": 1754009657,
+      "ext": ".wav"
+    },
+    {
+      "path": "./voice_data/temp/voice_embedding.npy",
+      "size": 180,
+      "modified": 1753851712,
+      "ext": ".npy"
+    }
+  ]
+}
