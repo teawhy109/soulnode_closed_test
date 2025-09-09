@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SoNo UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f1620;
+      --panel: #121b28;
+      --text: #eaf2ff;
+      --muted: #9fb0c8;
+      --accent: #4ea3ff;
+      --ok: #35d07f;
+      --warn: #ffb020;
+      --err: #ff5a7a;
+      --chip: #1c2a3e;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .wrap { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+    h1 { margin: 0 0 12px; letter-spacing: .5px; }
+    .hint { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    textarea {
+      width: 100%; min-height: 110px; resize: vertical; border: 1px solid #2a3a55;
+      background: var(--panel); color: var(--text); border-radius: 12px; padding: 12px 14px;
+      outline: none;
+    }
+    button {
+      height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #2a3a55;
+      background: var(--chip); color: var(--text); cursor: pointer;
+    }
+    button:hover { border-color: #3b4f72; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .primary { background: var(--accent); border-color: var(--accent); color: #041423; font-weight: 600; }
+    .pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: #0b1320; border: 1px solid #1f3150; color: var(--muted); }
+
+    .panel {
+      margin-top: 16px; background: var(--panel); border: 1px solid #23324a; border-radius: 12px; padding: 12px 14px;
+    }
+    .kv { display: grid; grid-template-columns: 100px 1fr; gap: 6px 12px; }
+    .k { color: var(--muted); }
+    .v { white-space: pre-wrap; }
+    .source { text-transform: uppercase; font-size: 11px; letter-spacing: .6px; color: var(--muted); }
+    .source.memory { color: var(--ok); }
+    .source.teach { color: var(--accent); }
+    .source.fallback { color: var(--warn); }
+    .source.guard, .source.error { color: var(--err); }
+
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
+    .chips button { background: #0c1626; border-color: #1f3252; }
+    .footer { margin: 22px 0 0; color: var(--muted); font-size: 13px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>SoNo</h1>
+    <div class="hint">Ask naturally. Try: <span class="pill">Who is Ty’s mom?</span>
+      <span class="pill">What’s Ivy’s favorite color?</span></div>
+
+    <textarea id="txt" placeholder="Type or dictate..."></textarea>
+
+    <div class="row" style="margin-top:10px;">
+      <button id="send" class="primary">Send</button>
+      <button id="tts">🔊 Read Aloud</button>
+      <button id="mic">🎙️ Start Mic</button>
+      <span id="micState" class="pill">mic: off</span>
+      <span id="health" class="pill">health: unknown</span>
+    </div>
+
+    <div id="respPanel" class="panel" style="display:none;">
+      <div class="kv">
+        <div class="k">status</div><div id="status" class="v">—</div>
+        <div class="k">source</div><div id="source" class="v source">—</div>
+        <div class="k">response</div><div id="response" class="v">—</div>
+      </div>
+      <div class="chips">
+        <button class="pill" data-q="Who is Ty’s mom?">Who is Ty’s mom?</button>
+        <button class="pill" data-q="What’s Ivy’s favorite color?">Ivy’s favorite color?</button>
+        <button class="pill" data-q="Update Ivy’s favorite color to navy blue.">Update Ivy color</button>
+        <button class="pill" data-q="Forget Ty’s favorite sport.">Forget sport</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="/healthz" target="_blank">/healthz</a> ·
+      <a href="/memory/export?token=dev-secret-123" target="_blank">/memory/export</a>
+    </div>
+  </div>
+
+  <script>
+    // === Utilities ===
+    const $ = sel => document.querySelector(sel);
+    const txt = $("#txt");
+    const btnSend = $("#send");
+    const btnTTS = $("#tts");
+    const btnMic = $("#mic");
+    const micState = $("#micState");
+    const healthChip = $("#health");
+
+    const respPanel = $("#respPanel");
+    const statusEl = $("#status");
+    const sourceEl = $("#source");
+    const responseEl = $("#response");
+
+    function setStatus(ok, msg) {
+      statusEl.textContent = ok ? "OK" : "ERROR";
+      sourceEl.textContent = msg?.source || "—";
+      responseEl.textContent = msg?.response ?? (msg?.error || "—");
+
+      sourceEl.className = "v source " + (msg?.source || "error");
+      respPanel.style.display = "block";
+    }
+
+    async function checkHealth() {
+      try {
+        const r = await fetch("/healthz");
+        const ok = (r.status === 200);
+        healthChip.textContent = "health: " + (ok ? "ok" : "bad");
+        return ok;
+      } catch {
+        healthChip.textContent = "health: bad";
+        return false;
+      }
+    }
+
+    // === Send text ===
+    async function sendText() {
+      const text = (txt.value || "").trim();
+      if (!text) { setStatus(false, {source:"guard", response:"Type something first."}); return; }
+
+      btnSend.disabled = true;
+      try {
+        const r = await fetch("/ask/general", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+
+        // Always parse JSON; if server ever returns non-JSON, this will throw & fall to catch.
+        const data = await r.json();
+
+        setStatus(true, data);
+        // If there is a spoken response, enable quick read
+        lastTTS = data?.response || "";
+      } catch (err) {
+        setStatus(false, {source:"error", response:"Non-JSON response from server"});
+      } finally {
+        btnSend.disabled = false;
+      }
+    }
+
+    // === TTS (browser speech synthesis) ===
+    let lastTTS = "";
+    function speak(text) {
+      const t = (text || lastTTS || responseEl.textContent || "").toString();
+      if (!t) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(t);
+      u.rate = 1.0; u.pitch = 1.0;
+      speechSynthesis.speak(u);
+    }
+
+    // === Mic (simple Web Speech API) ===
+    let rec = null, recOn = false;
+    function toggleMic() {
+      if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+        setStatus(false, {source:"guard", response:"Mic not supported in this browser."});
+        return;
+      }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!rec) {
+        rec = new SR();
+        rec.lang = "en-US";
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        rec.onresult = (e) => {
+          const phrase = e.results?.[0]?.[0]?.transcript || "";
+          txt.value = phrase;
+          sendText();
+        };
+        rec.onerror = () => setStatus(false, {source:"error", response:"Mic error"});
+        rec.onend = () => { recOn = false; micState.textContent = "mic: off"; };
+      }
+      if (recOn) { rec.stop(); return; }
+      recOn = true; micState.textContent = "mic: on";
+      rec.start();
+    }
+
+    // === Wire up ===
+    btnSend.addEventListener("click", sendText);
+    btnTTS.addEventListener("click", () => speak());
+    btnMic.addEventListener("click", toggleMic);
+    txt.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendText();
+    });
+    document.querySelectorAll(".chips button").forEach(b => {
+      b.addEventListener("click", () => { txt.value = b.dataset.q; sendText(); });
+    });
+
+    checkHealth();
+  </script>
+</body>
+</html>

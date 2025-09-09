@@ -1,0 +1,8 @@
+Pam | spouse | Rickey
+subject: Pam
+relation: birthplace
+object: Longview, Texas
+
+subject: Pam
+Q: What did Big Mama bake a lot?
+A: Tea cakes and egg pie

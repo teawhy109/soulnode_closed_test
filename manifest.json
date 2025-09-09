@@ -1,0 +1,887 @@
+﻿[
+    {
+        "path":  "app.py",
+        "size":  72610,
+        "sha1":  "A49FFD2A246D5332E6631E5B65B7026B37FB933D"
+    },
+    {
+        "path":  "app_phase21.py",
+        "size":  44352,
+        "sha1":  "804558E56CEF1DE2370FF4EC768324B923819A9C"
+    },
+    {
+        "path":  "app_v3_9_ok.py",
+        "size":  49288,
+        "sha1":  "2C791F8234038D4EA69B76C007EAADEC74561349"
+    },
+    {
+        "path":  "audio_to_text_pipeline.py",
+        "size":  944,
+        "sha1":  "6A2FC9A05598CCE553D66EC45D4EE8967EE41D71"
+    },
+    {
+        "path":  "backup.json",
+        "size":  195,
+        "sha1":  "B1C596EA717C0A7AF1BA9BEE7CBD10F386D79771"
+    },
+    {
+        "path":  "backup_memory.json",
+        "size":  2,
+        "sha1":  "97D170E1550EEE4AFC0AF065B78CDA302A97674C"
+    },
+    {
+        "path":  "bookmarks.json",
+        "size":  16514,
+        "sha1":  "E875217FE80C8B60BEBAB40BE107E8A4FF69D719"
+    },
+    {
+        "path":  "boot_memory.py",
+        "size":  908,
+        "sha1":  "9115831FAC24B11FEC85D69903F25BE9D4E08158"
+    },
+    {
+        "path":  "core_instructions.py",
+        "size":  1126,
+        "sha1":  "55200FE6F8B4E4F6690AD8BBEC79315D9B77F6F0"
+    },
+    {
+        "path":  "core_memory.json",
+        "size":  1251,
+        "sha1":  "EFCCC2F0D98587E23358603DFDCFF1A3232430DE"
+    },
+    {
+        "path":  "elevenlabs_voice.py",
+        "size":  781,
+        "sha1":  "68664C035CC434D0E08FE32A3018CADC12439639"
+    },
+    {
+        "path":  "encryptor.py",
+        "size":  1413,
+        "sha1":  "6A3F4A0ED0CD1767AA174BCBC2FAA4F63F1D7AA4"
+    },
+    {
+        "path":  "escalation_core.py",
+        "size":  709,
+        "sha1":  "A05531C5A5CE6C8A570FF64FECF05F3E435DC248"
+    },
+    {
+        "path":  "export.json",
+        "size":  225,
+        "sha1":  "EC52D5C4BD7CE40C3B381FD6542AD6CBAEDA66BA"
+    },
+    {
+        "path":  "gpt_logic.py",
+        "size":  649,
+        "sha1":  "BFBBB2B4F3D3365463ABC5076EA21D0D41E2069C"
+    },
+    {
+        "path":  "gradio_ui.py",
+        "size":  1109,
+        "sha1":  "D85373AE1CEC3E03F7AD740865FC3E6288E0F7D5"
+    },
+    {
+        "path":  "identity_core.py",
+        "size":  156,
+        "sha1":  "E856B2D9425239A94C0EFE8FF5EABBE2F7722E41"
+    },
+    {
+        "path":  "ingest.py",
+        "size":  905,
+        "sha1":  "A8EB13A9559AB25486D101B352B00D22BC48043A"
+    },
+    {
+        "path":  "ingest_pam.py",
+        "size":  4415,
+        "sha1":  "3793B204C17DF02DA40D706DF7A54C09FEC874D8"
+    },
+    {
+        "path":  "insert_bookmark.py",
+        "size":  261,
+        "sha1":  "BFA77C56A4289BAEA68C658640A76E13FDC2F957"
+    },
+    {
+        "path":  "insert_memory.py",
+        "size":  257,
+        "sha1":  "465FFB73FBF4C622C0B20FB6E449BC2865A4C174"
+    },
+    {
+        "path":  "intent.py",
+        "size":  6490,
+        "sha1":  "BF948601628DCD699741F0E43FCCDB214088A076"
+    },
+    {
+        "path":  "intent_map.json",
+        "size":  1237,
+        "sha1":  "0ED26E7405B8A34386A523FEAF63991246F881F9"
+    },
+    {
+        "path":  "knowledgefeed.py",
+        "size":  9162,
+        "sha1":  "E389D7E31F0E3B761C92F40BA2BE712F276AF1EF"
+    },
+    {
+        "path":  "last_day.json",
+        "size":  130,
+        "sha1":  "BFA8769056868B19AE4FF9BA0A691E41E13027B6"
+    },
+    {
+        "path":  "logic.py",
+        "size":  3207,
+        "sha1":  "5C450314B027A346054CBBB3C7848DDCA9306602"
+    },
+    {
+        "path":  "main.py",
+        "size":  1288,
+        "sha1":  "6BEDDB5E5281F9CFF5F281F8F26002AB4839BCB1"
+    },
+    {
+        "path":  "memory.py",
+        "size":  3069,
+        "sha1":  "39EDED44C2FEFBD51503A0D46CBDCE725669D4AA"
+    },
+    {
+        "path":  "memorystore.backup.json",
+        "size":  59227,
+        "sha1":  "060870F1DAC151A51243A916AC5D6C2CE75C10CC"
+    },
+    {
+        "path":  "memory_backup.py",
+        "size":  982,
+        "sha1":  "AA3A0443C2A929E18C27A81A084778C798824F3F"
+    },
+    {
+        "path":  "memory_engine.py",
+        "size":  631,
+        "sha1":  "945E6B8F94E728F34583DE92D1DE04E69720FDFE"
+    },
+    {
+        "path":  "memory_engine_v2.py",
+        "size":  545,
+        "sha1":  "E2B087E98A0A951AA74BEA3E74BE61402B710041"
+    },
+    {
+        "path":  "memory_export.json",
+        "size":  2,
+        "sha1":  "BF21A9E8FBC5A3846FB05B4FA0859E0917B2202F"
+    },
+    {
+        "path":  "memory_module.py",
+        "size":  2182,
+        "sha1":  "B1DC3BF613C18E2A48EDC01A4AC3AB54FAEF1373"
+    },
+    {
+        "path":  "memory_store.py",
+        "size":  5674,
+        "sha1":  "5AA14401CFCB5004A12C06FED994C2C84227C174"
+    },
+    {
+        "path":  "memory_test.py",
+        "size":  286,
+        "sha1":  "43B3AA5A6D718980F8835780D9C364BE66247971"
+    },
+    {
+        "path":  "memory_tone_summary.py",
+        "size":  1651,
+        "sha1":  "AC01D228BBC4894F721FC2CDF4C1C610EA2A123E"
+    },
+    {
+        "path":  "mom_bookmarks.json",
+        "size":  230,
+        "sha1":  "28E095DB12B50683F45725DA978091957D27689F"
+    },
+    {
+        "path":  "mom_memories.json",
+        "size":  221,
+        "sha1":  "ABEAF2A30D33B134931D4CC990C8CF8A0FC457A3"
+    },
+    {
+        "path":  "mom_profile.json",
+        "size":  342,
+        "sha1":  "1A1E9BD604EAF26AC3948BA6A8195EA73D8C178E"
+    },
+    {
+        "path":  "mylastday.json",
+        "size":  2,
+        "sha1":  "BF21A9E8FBC5A3846FB05B4FA0859E0917B2202F"
+    },
+    {
+        "path":  "normalize.py",
+        "size":  5733,
+        "sha1":  "6D1335F039A7B1D119995A0F72E754D741D40738"
+    },
+    {
+        "path":  "pamlea_qna.py",
+        "size":  3980,
+        "sha1":  "D0FD23360706E5DDB66A2A0A0D2BC4FAB5B1C320"
+    },
+    {
+        "path":  "pamlea_qna_block24.json",
+        "size":  6772,
+        "sha1":  "D52C57A05BBC1DAE4BF714396A7C102393F861A7"
+    },
+    {
+        "path":  "persona.py",
+        "size":  850,
+        "sha1":  "707F627E1CFDF4CD204E6225A5D910C28BE2FB48"
+    },
+    {
+        "path":  "phase10_10_ranked_recall_ui.py",
+        "size":  1577,
+        "sha1":  "E374F408F732A9235266B87F4B681752CF2CD309"
+    },
+    {
+        "path":  "phase10_11_ranked_summary_log_ui.py",
+        "size":  1587,
+        "sha1":  "FB4229C4640BE7C3468B553B8C6BD9223AE2A5A7"
+    },
+    {
+        "path":  "phase10_12_final_recall_ui.py",
+        "size":  1281,
+        "sha1":  "D2416C9B10C989E17D72196F19F69FCDC89778F4"
+    },
+    {
+        "path":  "phase10_2_logger_test_ui.py",
+        "size":  1136,
+        "sha1":  "D84C3C294A754D6A81243EAB4DA83A86252F02A4"
+    },
+    {
+        "path":  "phase10_3_input_recall_ui.py",
+        "size":  1428,
+        "sha1":  "FF6FF8D93B415DA9017B91D0E1BB7E6A254C8CA2"
+    },
+    {
+        "path":  "phase10_4_filter_by_tone_ui.py",
+        "size":  1118,
+        "sha1":  "F60565ED5E554AEB7D332F8CCCBCA965E29F406D"
+    },
+    {
+        "path":  "phase10_5_override_tone_ui.py",
+        "size":  1457,
+        "sha1":  "60AD32EAED9B27264F3DC9DC3C932D6B708D6EC3"
+    },
+    {
+        "path":  "phase10_6_predictor_ui.py",
+        "size":  1230,
+        "sha1":  "939CBE0D0F24BE643BA459B1C1788404CA5670B0"
+    },
+    {
+        "path":  "phase10_7_tag_sync_ui.py",
+        "size":  1221,
+        "sha1":  "DB77FB3CBFF1905894ABA878E7F26D4227B706F6"
+    },
+    {
+        "path":  "phase10_8_memory_summary_ui.py",
+        "size":  1172,
+        "sha1":  "E47A621F30EF285541D284F0ABD63DF2A58F19DC"
+    },
+    {
+        "path":  "phase10_9_multi_topic_summary_ui.py",
+        "size":  1545,
+        "sha1":  "F9A44CB65E42666ABC46E346AE88917FCD768B26"
+    },
+    {
+        "path":  "phase11_10_feedback_accuracy_ui.py",
+        "size":  1278,
+        "sha1":  "137F22DF65D5254C368C77816CE73AC3064B0425"
+    },
+    {
+        "path":  "phase11_1_session_logger_ui.py",
+        "size":  2345,
+        "sha1":  "DBAFD6E05DFF53739BFC06F80E7DD53B9E38A0A0"
+    },
+    {
+        "path":  "phase11_2_session_recall_ui.py",
+        "size":  2038,
+        "sha1":  "613A091204985EBFD0CE075180758D35DC6D08B1"
+    },
+    {
+        "path":  "phase11_3_tone_predictor_ui.py",
+        "size":  732,
+        "sha1":  "C9A52847693DA51A4C1AE1706FDE98553D12CDF1"
+    },
+    {
+        "path":  "phase11_5_tone_logger_ui.py",
+        "size":  1274,
+        "sha1":  "38B190FA75E0BE753035AB54A16816D896095636"
+    },
+    {
+        "path":  "phase11_6_tone_recall_ui.py",
+        "size":  1229,
+        "sha1":  "A72DCB766E15932318A45C669F4760C5634786B0"
+    },
+    {
+        "path":  "phase11_8_feedback_logger_ui.py",
+        "size":  1854,
+        "sha1":  "CD31F2CDBDFD76B73D011608CB412A18A4CAA035"
+    },
+    {
+        "path":  "phase11_9_feedback_audit.py",
+        "size":  1498,
+        "sha1":  "7551305918CC54A1E83B57F92D9A34CA8EEB4918"
+    },
+    {
+        "path":  "phase12_1_memorypromoter.py",
+        "size":  1130,
+        "sha1":  "2E935433F6F58ACF1ADADC25AF0898385FE40E03"
+    },
+    {
+        "path":  "phase12_2_memory_context_recall.py",
+        "size":  1235,
+        "sha1":  "2449EC3F31187B31594BFF8E6FCD6FF72510CF37"
+    },
+    {
+        "path":  "phase12_3_ranked_context_recall.py",
+        "size":  1025,
+        "sha1":  "757836D0D20BA6AF750AE0000E57BC0EFD93803F"
+    },
+    {
+        "path":  "phase8_4_promote_ui.py",
+        "size":  1680,
+        "sha1":  "93C669999759E5D1B1C304C9EA8EA132FB2F4970"
+    },
+    {
+        "path":  "phase8_5_memory_ui.py",
+        "size":  1201,
+        "sha1":  "86376FE4C7586299FD973AA8404E7590D66233AD"
+    },
+    {
+        "path":  "phase8_command_center.py",
+        "size":  1798,
+        "sha1":  "4767341A1688B28EA22C060C4ABCA74332A5050E"
+    },
+    {
+        "path":  "phase9_6_flag_ui.py",
+        "size":  1444,
+        "sha1":  "B961C23D4E09F06CD04E8985CD767FE8CA3ECCD8"
+    },
+    {
+        "path":  "phase9_7_tag_recall_ui.py",
+        "size":  1207,
+        "sha1":  "0F1A7C221FEC6CD8E7A0F0C206C3305E6207BF48"
+    },
+    {
+        "path":  "phase9_8_audit_ui.py",
+        "size":  1795,
+        "sha1":  "117E0B2202D37067F73093B9852928D84FD5AB6E"
+    },
+    {
+        "path":  "pre_promote_ui.py",
+        "size":  1447,
+        "sha1":  "2F2E2C70AF30F756EC40711701B503B9EE44CAD7"
+    },
+    {
+        "path":  "profiles.py",
+        "size":  860,
+        "sha1":  "595D1E201A99B44F29C70601DA8EE4BC6E33E8CF"
+    },
+    {
+        "path":  "rank_context_recall.py",
+        "size":  1448,
+        "sha1":  "E96BD36075F579BB53BA7328979369F81B2C8998"
+    },
+    {
+        "path":  "reflex_memory.py",
+        "size":  510,
+        "sha1":  "2ED55097293D4E908B7C44068C52FD5518E7D292"
+    },
+    {
+        "path":  "repomap.py",
+        "size":  2029,
+        "sha1":  "A4A4FD1D2AB6780168CECC86490100F6E9A59788"
+    },
+    {
+        "path":  "requirements.txt",
+        "size":  56,
+        "sha1":  "D75207DF987911A4D7699589BC2A64DF77C45C7C"
+    },
+    {
+        "path":  "response_map.json",
+        "size":  2367,
+        "sha1":  "6E64A2134536F5C2645F4738390FA7B4A9BFE48A"
+    },
+    {
+        "path":  "response_map.py",
+        "size":  953,
+        "sha1":  "49C9F1C2FC9EFBFD37F963263BE22F601F1BEA47"
+    },
+    {
+        "path":  "response_styles.json",
+        "size":  453,
+        "sha1":  "E0B28B799F72C736F97C74A4341EF76C3BEA6FC7"
+    },
+    {
+        "path":  "rickey_qna.py",
+        "size":  5578,
+        "sha1":  "2DAA465AA38220A1550AAC8518771F6DB925BC06"
+    },
+    {
+        "path":  "SessionMemory.json",
+        "size":  442,
+        "sha1":  "E1008F235EC3DEBC46A8850BFB9BF8506404F5D4"
+    },
+    {
+        "path":  "session_memory.json",
+        "size":  821,
+        "sha1":  "529EB67AF2D6DE602E2B7C841904D261BD0AA6D5"
+    },
+    {
+        "path":  "SoulNodeMemory.json",
+        "size":  260,
+        "sha1":  "A2698284F310E7370C9FB5455D9521784FEDB4B2"
+    },
+    {
+        "path":  "soulnode_memory.json",
+        "size":  829,
+        "sha1":  "F5444D5332B860AF9EFC17B7A4E90E0A92926E4F"
+    },
+    {
+        "path":  "soulnode_memory.py",
+        "size":  1806,
+        "sha1":  "058291CD19E72702F901255D81E46D2196A500A9"
+    },
+    {
+        "path":  "soulnode_memory_export.json",
+        "size":  7032,
+        "sha1":  "6F6A8512BAB8EB36BA6C2DEFD50CF0F1F99F7A8A"
+    },
+    {
+        "path":  "soulnode_memory_export.txt",
+        "size":  7077,
+        "sha1":  "E83005BE95658E42C6A216D54C6DE8D4F833144C"
+    },
+    {
+        "path":  "soulnode_ui.py",
+        "size":  673,
+        "sha1":  "AC6FCEA9AC1B61DE4AA96B14BFB2BACC81F8C294"
+    },
+    {
+        "path":  "soul_core.py",
+        "size":  1173,
+        "sha1":  "2197DC31CCEA0E78DA652413C707CC3B53F1D7BA"
+    },
+    {
+        "path":  "soul_ui.py",
+        "size":  1407,
+        "sha1":  "B18AC2FA2930789EE164BEAF84E2C7B937532BB0"
+    },
+    {
+        "path":  "spoken.txt",
+        "size":  1028,
+        "sha1":  "EFBB6AD8B0996E2FAA557A830750D6AFE5B02780"
+    },
+    {
+        "path":  "spoken_memory.json",
+        "size":  2,
+        "sha1":  "97D170E1550EEE4AFC0AF065B78CDA302A97674C"
+    },
+    {
+        "path":  "style_map.py",
+        "size":  283,
+        "sha1":  "7003928BE30A1D2D653E6BFF90CB0ECB2908CD27"
+    },
+    {
+        "path":  "temp_requirements.txt",
+        "size":  5,
+        "sha1":  "E8439A6B8F01E74D2DFC52EBA0604D8C6885C834"
+    },
+    {
+        "path":  "test_import.py",
+        "size":  73,
+        "sha1":  "682121D24F3C33788E15A2A6EE496ABE874C57F9"
+    },
+    {
+        "path":  "Tone_Feedback_Audit.json",
+        "size":  269,
+        "sha1":  "63D02150DCE45D13BE48A89050C410465176E1BD"
+    },
+    {
+        "path":  "tone_feedback_log.json",
+        "size":  211,
+        "sha1":  "C494BDAC880BD9734A4583E080314460D735BD05"
+    },
+    {
+        "path":  "tone_selector_ui.py",
+        "size":  672,
+        "sha1":  "0E1334EA3B1571F3E25F45F5AB65F7D4AE0D065B"
+    },
+    {
+        "path":  "transcribe_audio.py",
+        "size":  1440,
+        "sha1":  "F61707CED174EC95F91B08CBE73B49631714F947"
+    },
+    {
+        "path":  "tts_engine.py",
+        "size":  2680,
+        "sha1":  "1424E8D59AD6075366FCEF3E760A82BC83563A9A"
+    },
+    {
+        "path":  "ui.py",
+        "size":  1686,
+        "sha1":  "D9224EB8A7FEF8215CFB2299521EA106228BA9EF"
+    },
+    {
+        "path":  "unknown_inputs.json",
+        "size":  1193,
+        "sha1":  "E3C431858B2F37F75C37F1E3B1EDA93889EC67E9"
+    },
+    {
+        "path":  "utils.py",
+        "size":  1733,
+        "sha1":  "3933FBEBC58D401F5FFC92BF6B3595A9A33F180B"
+    },
+    {
+        "path":  "vault.json",
+        "size":  1402,
+        "sha1":  "7731E2E6A4C1CFCAAF3430343FE7BA6BFB21931C"
+    },
+    {
+        "path":  "vinc.py",
+        "size":  564,
+        "sha1":  "0C95DE4043AF9C26185AAD423B963C737D241C53"
+    },
+    {
+        "path":  "voice.py",
+        "size":  1373,
+        "sha1":  "98F744880155433A5303C6A2A5CF6EEE746AA89B"
+    },
+    {
+        "path":  "voice_chat.py",
+        "size":  1519,
+        "sha1":  "137DD3E5EA1D80C7FA912B6E6508E9399DD60C83"
+    },
+    {
+        "path":  "voice_embed.py",
+        "size":  1019,
+        "sha1":  "2893C31B83C419BBB01EADE3E35F81208A6BB373"
+    },
+    {
+        "path":  "voice_engine.py",
+        "size":  1220,
+        "sha1":  "697D4B8CC07DD4C15A42D9EC9C0E196D49F3ED07"
+    },
+    {
+        "path":  "voice_input.py",
+        "size":  729,
+        "sha1":  "9DE766993E775F68F6AAC289EDB13A0227250082"
+    },
+    {
+        "path":  "voice_loop.py",
+        "size":  1296,
+        "sha1":  "D5E894FD9A1DB2C72BCF06FAEC9A7BAA8F5B1C40"
+    },
+    {
+        "path":  "voice_output.py",
+        "size":  530,
+        "sha1":  "0518B2A75632E40C7540FA68CEBC0305B68B2533"
+    },
+    {
+        "path":  "voice_preprocess.py",
+        "size":  788,
+        "sha1":  "3067F25C99D5FD828118B7514941E0FDC8C19E84"
+    },
+    {
+        "path":  "voice_test.py",
+        "size":  931,
+        "sha1":  "380197889ECD60B61FB7021751C8BBF4611AF079"
+    },
+    {
+        "path":  "__init__.py",
+        "size":  0,
+        "sha1":  "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709"
+    },
+    {
+        "path":  ".data\\Bookmarks.json",
+        "size":  433,
+        "sha1":  "C1B815547E3831682CFA550A8F66750392B0B5F4"
+    },
+    {
+        "path":  ".data\\SessionMemory.json",
+        "size":  433,
+        "sha1":  "4E533A60321F5912582B1703FB2FB21554821822"
+    },
+    {
+        "path":  ".sono\\repomap.json",
+        "size":  159365,
+        "sha1":  "EB56BEECCEC7ED4EBEC3C4D7D91867E91D7C53D5"
+    },
+    {
+        "path":  "app_module\\__init__.py",
+        "size":  0,
+        "sha1":  "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709"
+    },
+    {
+        "path":  "backup_mem\\memory.json",
+        "size":  13532,
+        "sha1":  "C5759D2DD671D2AC3309DA9917FC0D0A29B58FDD"
+    },
+    {
+        "path":  "backup_mem\\MemoryStore.json",
+        "size":  1451,
+        "sha1":  "84F17E896F3BB9C926490F325C2120094645F90E"
+    },
+    {
+        "path":  "backup_mem\\memory_store.json",
+        "size":  271,
+        "sha1":  "2D66CABE9D6A30D03600ECBF833EC54138125771"
+    },
+    {
+        "path":  "brains\\business_build.py",
+        "size":  269,
+        "sha1":  "A29322E19A8DC5CBB99575048CF4D87EBA979153"
+    },
+    {
+        "path":  "brains\\content_growth.py",
+        "size":  269,
+        "sha1":  "C6FE5EA18D7A186A363DDB9DD8091054F6F5B746"
+    },
+    {
+        "path":  "brains\\content_strategy.py",
+        "size":  268,
+        "sha1":  "AE39FCE0980AC5BE243E527DD437667C72524DDF"
+    },
+    {
+        "path":  "brains\\credit_ops.py",
+        "size":  244,
+        "sha1":  "4B5D6DAF836FE4F057638B04687254015A2A7039"
+    },
+    {
+        "path":  "brains\\fallback_lines.py",
+        "size":  355,
+        "sha1":  "E00488B71B82DB31EE46C7A3F0F5339A887A496A"
+    },
+    {
+        "path":  "brains\\health_tracking.py",
+        "size":  209,
+        "sha1":  "38B554D7531BFBDFED9558D17C808E26CB4DF963"
+    },
+    {
+        "path":  "brains\\mental_reset.py",
+        "size":  288,
+        "sha1":  "9DF4609A5E2AB5C82B7DB4519312A61405952C06"
+    },
+    {
+        "path":  "brains\\response_map.py",
+        "size":  88,
+        "sha1":  "3FD04180F069B2408F93BE7A933E7D783297BF1E"
+    },
+    {
+        "path":  "brains\\__init__.py",
+        "size":  0,
+        "sha1":  "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709"
+    },
+    {
+        "path":  "data\\aliases.json",
+        "size":  44,
+        "sha1":  "34DF573A9B3EC348632F8BCF352827648BE13CA9"
+    },
+    {
+        "path":  "data\\intro_monologue.txt",
+        "size":  1517,
+        "sha1":  "D9EC158587271CE61DF2B7568EA79D52FF637ABE"
+    },
+    {
+        "path":  "data\\mem.json",
+        "size":  737,
+        "sha1":  "CEE9C2F2E716427988A8A6B5C42444B2FE1B0F5F"
+    },
+    {
+        "path":  "data\\memory.json",
+        "size":  432,
+        "sha1":  "3950C7E0B0C9FC1DB99AB6D695D0F68E25A373D4"
+    },
+    {
+        "path":  "data\\pam.txt",
+        "size":  31380,
+        "sha1":  "0474219B380B9F616D8CF1C1DDD5EC3A41DAAEBA"
+    },
+    {
+        "path":  "knowledge\\seed.txt",
+        "size":  158,
+        "sha1":  "538EDF1B0A88BD28CD1B318ACEF5C535228982B4"
+    },
+    {
+        "path":  "memory\\core_memory.json",
+        "size":  2459,
+        "sha1":  "609208792E986764EB257106A842680C6A4FA7AC"
+    },
+    {
+        "path":  "memory\\memory_engine.py",
+        "size":  0,
+        "sha1":  "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709"
+    },
+    {
+        "path":  "milestone_23_backup\\app.py",
+        "size":  945,
+        "sha1":  "2F2A860C763A03FB4E45BE7DCBC661079BBC72D0"
+    },
+    {
+        "path":  "milestone_23_backup\\soulnode_memory.py",
+        "size":  1078,
+        "sha1":  "0B2A5D8968FFA54BEBFC778AE3E04021A6D99658"
+    },
+    {
+        "path":  "milestone_23_backup\\soul_core.py",
+        "size":  904,
+        "sha1":  "7B221FCFCC395B46F0B5D45BD9B72764EDD26471"
+    },
+    {
+        "path":  "persona\\canon_facts.json",
+        "size":  7440,
+        "sha1":  "407BED248483BF463764FB80577A7AF76A69C6DB"
+    },
+    {
+        "path":  "persona\\sono_persona.json",
+        "size":  1071,
+        "sha1":  "EFD88B2117149ABD2B1B10A014AE44AE2AFE9801"
+    },
+    {
+        "path":  "persona\\stories.json",
+        "size":  6367,
+        "sha1":  "D3DAE68B0096455438884E9ACB18F3CD1DA10E14"
+    },
+    {
+        "path":  "promptpacks\\promptpack1.txt",
+        "size":  791,
+        "sha1":  "C7C15F51324DD6831F244FBEF38C1E10DB7DFD79"
+    },
+    {
+        "path":  "static\\style.css",
+        "size":  4137,
+        "sha1":  "70F54EB5A627D385E5911138E9FD581197AB0DE8"
+    },
+    {
+        "path":  "templates\\index.html",
+        "size":  7167,
+        "sha1":  "67C83A91D69CDD2499796BDEA610B2ED701193EB"
+    },
+    {
+        "path":  "templates\\sono-ui.html",
+        "size":  8074,
+        "sha1":  "97246DE504EDA182D9914F88EFF75E1AB5C14A1D"
+    },
+    {
+        "path":  "templates\\upload.html",
+        "size":  341,
+        "sha1":  "31D3BD31B1D3B512E79B0B56F65027D024D8669E"
+    },
+    {
+        "path":  "tests\\conftest.py",
+        "size":  261,
+        "sha1":  "51D1A9BDD4B292BAEB0A377481BD298F8E32FA14"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_01_smoke.py",
+        "size":  634,
+        "sha1":  "0F69045977F50D3F02A86B60A79E14704EBD55CD"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_02_process_audio.py",
+        "size":  1758,
+        "sha1":  "C8F6A3DF44DE7CA12BAAB685DC7E7975214273C1"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_03_speech_to_text.py",
+        "size":  397,
+        "sha1":  "17C2FE007905ACABD491D09E1AB026205C931310"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_04_audio_to_text_pipeline.py",
+        "size":  2434,
+        "sha1":  "0AA9D06FC47E5025A869BF4F86C1C3F33B8EB5BB"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_05_modes.py",
+        "size":  767,
+        "sha1":  "7B3E330CB7F45B148A202B5B505726E765CBBF70"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_06_mode_api.py",
+        "size":  1457,
+        "sha1":  "9196FCAE6BC8C592B50C651AB65E840153C6D1A6"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_07_tts_contract.py",
+        "size":  1741,
+        "sha1":  "BDBBAA6577E88E233470421551940C477FE40511"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_08_process_text.py",
+        "size":  1353,
+        "sha1":  "AC765771556A06E020EC1F9553C327B709DB760D"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_09_intent_mapping.py",
+        "size":  1422,
+        "sha1":  "AE3502D0BBE10AB974144407E189BD91C899D494"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_10_memory_and_bookmark.py",
+        "size":  1420,
+        "sha1":  "3D4DA0E0BF07480CB328DC7466BDCD562A2B5617"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_11_status_api.py",
+        "size":  1466,
+        "sha1":  "47617578EB0360BCB9C25F3AA9A0FAF8A56EBD63"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_12_escalation.py",
+        "size":  923,
+        "sha1":  "2D919001B4A59D590D732E0E5D470007E79E3BBE"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_13_status_counts_and_mode.py",
+        "size":  1481,
+        "sha1":  "57D79740C348C1034629A695D2E99F692B9120EB"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_14_memory_search.py",
+        "size":  1324,
+        "sha1":  "9D9F5BB943394D81D670FA1E85D2CAE948750E24"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_15_memory_roundtrip.py",
+        "size":  2794,
+        "sha1":  "531B650B621E435A29839EBF112EA4077C2ED1BF"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_16_memory_list.py",
+        "size":  1507,
+        "sha1":  "363D7763F81B617A4DE17B9FA838369DFE4AE8C7"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_17_memory_delete.py",
+        "size":  1571,
+        "sha1":  "C4C140543274873056D9D6F8DCF3520B9858157F"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_18_memory_update.py",
+        "size":  1454,
+        "sha1":  "72722DEB7D1E19E9C10FC93A067B52BAD9421D2D"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_19_bookmark_list.py",
+        "size":  1456,
+        "sha1":  "07B97E39737835BACDB9D2085C89092CA34D9916"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_20_bookmark_delete.py",
+        "size":  1765,
+        "sha1":  "F4EC314BA379E8AFB4765C7E616C574C74FE5AC0"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_21_bookmark_search.py",
+        "size":  1242,
+        "sha1":  "43A3E2A554C087152367A55CBA919FA04065F6E8"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_22_mom_profile.py",
+        "size":  1323,
+        "sha1":  "DB4569E3C32B99F74BF40659C2D5AF0DFB1B7751"
+    },
+    {
+        "path":  "tests\\blocks\\test_block_23_mom_questions.py",
+        "size":  1705,
+        "sha1":  "F8120370BB93301F8688615EC150A5127A4479D7"
+    }
+]

@@ -1,32 +1,50 @@
 import gradio as gr
-import requests
-import tempfile
+from soulnode_memory import SoulNodeMemory
 
-def play_voice_memory():
-    try:
-        print("Sending request to Flask /recall-voice...")
-        response = requests.get("http://127.0.0.1:5000/recall-voice")
-        print(f"Response status code: {response.status_code}")
+memory = SoulNodeMemory()
 
-        if response.status_code != 200:
-            return "Error fetching voice memory."
+def ask_memory(subject, relation):
+    result = memory.ask(subject.strip(), relation.strip())
+    return result if result else "I don't have a verified answer."
 
-        temp_audio = tempfile.NamedTemporaryFile(delete=False, suffix='.mp3')
-        temp_audio.write(response.content)
-        temp_audio.close()
-        print(f"Saved MP3 to: {temp_audio.name}")
-        return temp_audio.name
-    except Exception as e:
-        print(f"Exception in UI: {e}")
-        return f"Error: {str(e)}"
+def save_memory(subject, relation, obj):
+    success, msg = memory.save_fact(subject.strip(), relation.strip(), obj.strip())
+    return msg
+
+def clear_memory():
+    memory.clear()
+    return "Memory cleared."
+
+def show_all():
+    data = memory.export_all()
+    return "\n".join([f"{k} → {v}" for k, v in data.items()]) if data else "Memory is empty."
 
 with gr.Blocks() as demo:
-    gr.Markdown("### SoulNode Voice Recall")
-    with gr.Row():
-        recall_button = gr.Button("Recall Recent Memories")
-    with gr.Row():
-        audio_output = gr.Audio(label="Voice Output", type="filepath")
+    gr.Markdown("## 🧠 SoulNode Memory Interface")
 
-    recall_button.click(fn=play_voice_memory, outputs=audio_output)
+    with gr.Tab("Ask"):
+        subj = gr.Textbox(label="Subject")
+        rel = gr.Textbox(label="Relation")
+        ask_btn = gr.Button("Ask")
+        output = gr.Textbox(label="Answer")
+        ask_btn.click(ask_memory, inputs=[subj, rel], outputs=output)
+
+    with gr.Tab("Save"):
+        s = gr.Textbox(label="Subject")
+        r = gr.Textbox(label="Relation")
+        o = gr.Textbox(label="Object")
+        save_btn = gr.Button("Save")
+        save_result = gr.Textbox(label="Result")
+        save_btn.click(save_memory, inputs=[s, r, o], outputs=save_result)
+
+    with gr.Tab("Clear"):
+        clear_btn = gr.Button("Clear Memory")
+        clear_out = gr.Textbox(label="Clear Status")
+        clear_btn.click(clear_memory, outputs=clear_out)
+
+    with gr.Tab("Export"):
+        export_btn = gr.Button("Show All Memory")
+        export_box = gr.Textbox(label="Stored Facts")
+        export_btn.click(show_all, outputs=export_box)
 
 demo.launch()

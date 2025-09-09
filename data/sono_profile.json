@@ -1,0 +1,25 @@
+{
+  "subject": "pam",
+  "display_names": ["Pam", "Pamlea", "Pam Butler", "Mom"],
+  "aliases": ["pamlea", "ty's mom", "ty mom", "pam b"],
+  "relationship_to_ty": "mother",
+  "facts": {
+    "full name": "Pamlea Butler",
+    "hometown": "Los Angeles, CA",
+    "birthday": "May 18",
+    "favorite color": "Royal blue",
+    "favorite sport": "Basketball",
+    "child": "Ty",
+    "mom": "Pam",
+    "mother": "Pam",
+    "likes": "Coffee, jazz, gardening",
+    "dislikes": "Crowded stores",
+    "grandkids": "Kobe, Ivy",
+    "pet peeve": "Cluttered kitchen counters",
+    "go-to coffee": "Latte with oat milk",
+    "comfort show": "The Golden Girls",
+    "church": "Greater Life Community Church",
+    "first job": "Receptionist at a dental office",
+    "health note": "Watch sugar intake"
+  }
+}

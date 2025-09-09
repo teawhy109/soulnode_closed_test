@@ -1,0 +1,518 @@
+[
+  {
+    "id": "1754824253710",
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private",
+    "timestamp": "2025-08-10T06:10:53.710423"
+  },
+  {
+    "id": "1754824253876",
+    "content": "block13-mem",
+    "type": "private",
+    "timestamp": "2025-08-10T06:10:53.876192"
+  },
+  {
+    "id": "1754824253945",
+    "content": "Test block16_token_one",
+    "type": "private",
+    "timestamp": "2025-08-10T06:10:53.945388"
+  },
+  {
+    "id": "1754824253966",
+    "content": "Test block16_token_two",
+    "type": "private",
+    "timestamp": "2025-08-10T06:10:53.966223"
+  },
+  {
+    "id": "1754824254001",
+    "content": "b17 keep me",
+    "type": "private",
+    "timestamp": "2025-08-10T06:10:54.001740"
+  },
+  {
+    "id": "1754824254074",
+    "content": "b18 edited text",
+    "type": "private",
+    "timestamp": "2025-08-10T06:10:54.074202"
+  },
+  {
+    "id": 1754824465496,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private",
+    "timestamp": "2025-08-10T06:14:25.496331"
+  },
+  {
+    "id": 1754824465884,
+    "content": "block13-mem",
+    "type": "private",
+    "timestamp": "2025-08-10T06:14:25.884212"
+  },
+  {
+    "id": 1754824465936,
+    "content": "Test block16_token_one",
+    "type": "private",
+    "timestamp": "2025-08-10T06:14:25.936589"
+  },
+  {
+    "id": 1754824465959,
+    "content": "Test block16_token_two",
+    "type": "private",
+    "timestamp": "2025-08-10T06:14:25.959371"
+  },
+  {
+    "id": 1754824465992,
+    "content": "b17 keep me",
+    "type": "private",
+    "timestamp": "2025-08-10T06:14:25.992811"
+  },
+  {
+    "id": 1754824466053,
+    "content": "b18 edited text",
+    "type": "private",
+    "timestamp": "2025-08-10T06:14:26.053757"
+  },
+  {
+    "id": 1754824690413,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754824690579,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754824690635,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754824690657,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754824690691,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754824690761,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754824978856,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754824979008,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754824979063,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754824979084,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754824979124,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754824979187,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754825211431,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754825211602,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754825211658,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754825211682,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754825211717,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754825211787,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754825778302,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754825778538,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754825778618,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754825778667,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754825778715,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754825778801,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754826241567,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754826241853,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754826241952,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754826242010,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754826242054,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754826242155,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754826551849,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754826552004,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754826552061,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754826552083,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754826552118,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754826552188,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754826876741,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754826877109,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754826877157,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754826877188,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754826877222,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754826877283,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754827076063,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754827076228,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754827076290,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754827076312,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754827076348,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754827076414,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754827149115,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754827149294,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754827149361,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754827149383,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754827149421,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754827149485,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+    "id": 1754828632489,
+    "content": "Ty once weighed 375 pounds and is now healing through fasting.",
+    "type": "private"
+  },
+  {
+    "id": 1754828632823,
+    "content": "block13-mem",
+    "type": "private"
+  },
+  {
+    "id": 1754828632897,
+    "content": "Test block16_token_one",
+    "type": "private"
+  },
+  {
+    "id": 1754828632949,
+    "content": "Test block16_token_two",
+    "type": "private"
+  },
+  {
+    "id": 1754828633014,
+    "content": "b17 keep me",
+    "type": "private"
+  },
+  {
+    "id": 1754828633181,
+    "content": "b18 edited text",
+    "type": "private"
+  },
+  {
+  "roots_identity": {
+    "family_core": {
+      "matriarch": {
+        "name": "Pamlea Butler",
+        "maiden_name": "Miller",
+        "birthplace": "Midland, Texas",
+        "raised_by": [
+          "Lillian 'Mama Lil' Miller",
+          "Amy Elizabeth 'Betty' Anderson"
+        ],
+        "siblings": [
+          {
+            "name": "Spoogey",
+            "notes": "Spelled S-P-U-G-G-Y; died young in his 20s."
+          }
+        ],
+        "close_friends": ["Lorraine", "Joy Joy (Joy Maven)", "Tasha"],
+        "core_values": [
+          "Don't touch nothin’, don't ask for nothin’, ‘cause you ain’t gettin’ nothin’",
+          "What goes on in this house stays in this house",
+          "Don’t talk while grown folks are talking",
+          "No arguing in front of the children",
+          "Respect elders, home, and self"
+        ],
+        "traits": [
+          "Neighborhood mother figure",
+          "Deeply respected in Inglewood",
+          "Firm but loving discipline",
+          "Always cooking and keeping a spotless home"
+        ],
+        "notable_quotes": [
+          "Curls for the girls, waves for the babes",
+          "You better not say 'huh' or 'what' when I call your name"
+        ],
+        "life_highlights": [
+          "Worked as community liaison at Worthington Elementary under Principal Mr. Border",
+          "Took kids on field trips to live TV tapings",
+          "Married to Rickey Butler for 51 years until his passing",
+          "Survived theft of entire storage in Longview",
+          "Became great-grandmother to Naiyomi (daughter of Jadae)"
+        ],
+        "hobbies": [
+          "Crafting and scrapbooking",
+          "Making animated slideshows with Pro Show Producer",
+          "Decorating for Christmas with themed precision",
+          "Watching African Bee movies on YouTube",
+          "Watching grass-cutting videos like SB Mowing",
+          "Daily Bible reading"
+        ],
+        "favorite_foods": [
+          "Rotisserie chicken, baked potato, salad",
+          "Hillshire sausage + salad + potato",
+          "Mexican Chicken Caesar from El Torito's",
+          "Rib + link sandwich from Carter’s BBQ in Longview",
+          "Lemon fried pies from Smokehouse on 259"
+        ],
+        "holiday_traditions": [
+          "Full spreads at Thanksgiving and Christmas",
+          "Turkey, ham, greens, mac & cheese, peach cobbler, sweet potato pie",
+          "Friends like DT, Jamie, Big O always contributing"
+        ],
+        "pet_history": [
+          {
+            "name": "Yasha",
+            "type": "Siberian/Alaskan Husky",
+            "traits": "Brilliant white, fiercely protective, highly trained",
+            "fate": "Poisoned; buried by Rickey and Uncle Junior in Mama Lil’s backyard"
+          },
+          {
+            "name": "Fifi",
+            "type": "Poodle",
+            "origin": "Mama Lil’s side"
+          }
+        ],
+        "faith": {
+          "scripture_themes": [
+            "Strength in suffering",
+            "Joy after pain",
+            "Family legacies",
+            "God’s protection and provision"
+          ],
+          "prayer_warriors": ["Debbie", "Sheila", "Others"]
+        }
+      },
+      "patriarch": {
+        "name": "Rickey Butler",
+        "birthplace": "Los Angeles, California",
+        "education": [
+          "Manual Arts Junior High",
+          "Washington High School"
+        ],
+        "occupations": [
+          "Bethlehem Brick Company",
+          "Main company (long walk commute)",
+          "Housekeeping Manager at Hollywood Park Casino"
+        ],
+        "traits": [
+          "Meticulous",
+          "Funny",
+          "Family-first",
+          "Neighborhood-respected"
+        ],
+        "hobbies": [
+          "Fishing at Hermosa Beach and Laundrie Park",
+          "Listening to jazz music",
+          "Coastal drives with Pam"
+        ],
+        "vehicles": [
+          "Brown Firebird (1980s)",
+          "Conversion van for coastal rides"
+        ],
+        "memorable_dishes": [
+          "Unknown 1980s Ranchero meat dish with julienned carrots/onions"
+        ],
+        "marriage_notes": [
+          "Met Pam via Cheryl or Ricky Jones through Linda Butler",
+          "First date: Pam cooked fried chicken, spaghetti, jiffy cornbread, Kool-Aid",
+          "Never left after first dinner"
+        ],
+        "death": {
+          "date": "May 20, 2020",
+          "context": "Passed during leg amputation surgery, after long battle with Type 2 Diabetes and dialysis"
+        }
+      }
+    },
+    "addresses_timeline": [
+      "82nd Street and 5th Ave",
+      "2nd Ave (West family connections)",
+      "28th Street (porch slip, Disneyland traditions)",
+      "10th Avenue, Burnside",
+      "Byrne Street (lived with Uncle Willie)",
+      "Englewood (1987 - major friendships)",
+      "Longview, TX (post-Mama Lil's passing)"
+    ],
+    "extended_legends": {
+      "Big_O": "Close family friend who said 'I'd die with you, Ty, but I'd die FOR your mother.'",
+      "DT": "Holiday pecan pie master",
+      "Jamie": "Known for dressing contributions at holidays",
+      "Marlon_Mar_Rock_West": "Gang member who showed utmost respect to Pam; tragically killed young",
+      "Tara_West": "Another favorite of Pam’s, also tragically killed"
+    }
+  }
+}
+]

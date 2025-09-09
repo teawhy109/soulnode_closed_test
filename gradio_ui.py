@@ -1,5 +1,5 @@
 import gradio as gr
-from soulnode_memory import SoulNodeMemory
+from memory import SoulNodeMemory
 
 memory = SoulNodeMemory()
 
@@ -13,7 +13,7 @@ def chat_with_sono(user_input):
         "my dad's name is", 
         "my kid's name is"
     ]):
-        return memory.remember(user_input)
+        return memory.update_memory(user_input)
 
     # Recall memory if input is a question
     elif any(trigger in lowered for trigger in [

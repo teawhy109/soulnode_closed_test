@@ -1,0 +1,540 @@
+{
+  "meta": {
+    "source": "data\\pam.txt",
+    "ingested_at": "2025-08-14T03:52:08.679791Z"
+  },
+  "records": [
+    {
+      "type": "qa",
+      "question": "Where was Pamlea (Pam) Butler born?",
+      "answer": "Midland, Texas."
+    },
+    {
+      "type": "qa",
+      "question": "Who primarily raised Pamlea Butler?",
+      "answer": "Mamie (Big Momma) Sorrell Lillian “Mama Lil” Miller."
+    },
+    {
+      "type": "qa",
+      "question": "When did Mama Lil pass away?",
+      "answer": "Between 2006 and 2008 from returning cancer."
+    },
+    {
+      "type": "qa",
+      "question": "Where did Mama Lil work that brought her joy?",
+      "answer": "At the Inglewood racetrack casino."
+    },
+    {
+      "type": "qa",
+      "question": "When did Betty pass away?",
+      "answer": "In the 1990s."
+    },
+    {
+      "type": "qa",
+      "question": "What did Amy Elizabeth Anderson pass away from?",
+      "answer": "Alzheimer’s, in the early 2000s."
+    },
+    {
+      "type": "qa",
+      "question": "Who was Pamlea Butler's beloved brother?",
+      "answer": "Spuggyy (spelled S-P-U-G-G-Y). He died young in his 20s."
+    },
+    {
+      "type": "qa",
+      "question": "What breed was the family dog Yasha?",
+      "answer": "Siberian/Alaskan Husky, large and brilliant white, protective and deeply trained."
+    },
+    {
+      "type": "qa",
+      "question": "What happened to Yasha?",
+      "answer": "Yasha was poisoned and buried in Mama Lil’s backyard by Rickey Butler and Uncle Junior."
+    },
+    {
+      "type": "qa",
+      "question": "Did Pamlea Butler have any other family dogs?",
+      "answer": "Yes. Bail a, German Shepherd."
+    },
+    {
+      "type": "qa",
+      "question": "Who were key friends in Pamlea Butler's life?",
+      "answer": "Lorraine (quirky, Cadillac-driving), Term McCoy, Deborah, and Joy Joy (Joy Maven)."
+    },
+    {
+      "type": "qa",
+      "question": "Where did Pamlea Butler work as a community liaison?",
+      "answer": "Worthington Elementary under Principal Mr. Border (now deceased)."
+    },
+    {
+      "type": "qa",
+      "question": "Who did Pamlea Butler meet at Worthington Elementary?",
+      "answer": "Her lifelong friend Tasha."
+    },
+    {
+      "type": "qa",
+      "question": "What special outings did Pamlea Butler arrange for kids?",
+      "answer": "Field trips to live tapings of TV shows."
+    },
+    {
+      "type": "qa",
+      "question": "What values did Pamlea Butler enforce at home?",
+      "answer": "High standards of respect and discipline, including: 'Don’t touch nothin’, don’t ask for nothin’, ’cause you ain’t gettin’ nothin,' 'What goes on in this house stays in this house,' and 'Don’t talk while grown folks are talking.'"
+    },
+    {
+      "type": "qa",
+      "question": "What was Pamlea Butler known for in the neighborhood?",
+      "answer": "Being a respected mother figure and maintaining a stable, admired relationship with Rickey Butler."
+    },
+    {
+      "type": "qa",
+      "question": "What meals did Pamlea Butler host during holidays?",
+      "answer": "Full spreads: turkey, ham, greens, mac & cheese, peach cobbler, sweet potato pie, etc."
+    },
+    {
+      "type": "qa",
+      "question": "Who were frequent guests bringing dishes to Pamlea Butler's holiday meals?",
+      "answer": "DT (pecan pie), Jamie (dressing), and Big O (everything)."
+    },
+    {
+      "type": "qa",
+      "question": "How did gang members in Inglewood show respect to Pamlea Butler?",
+      "answer": "They would pull their pants up and greet her with 'Yes, Ms. Butler."
+    },
+    {
+      "type": "qa",
+      "question": "Which favorites of hers were tragically killed young?",
+      "answer": "Marlon 'Mar-Rock' West and Tara West."
+    },
+    {
+      "type": "qa",
+      "question": "What was Pamlea Butler's nightly routine regarding cooking?",
+      "answer": "She cooked nightly and always had dessert."
+    },
+    {
+      "type": "qa",
+      "question": "What plants filled Pamlea Butler's home?",
+      "answer": "Spider plants, dumb cane, and elephant ears."
+    },
+    {
+      "type": "qa",
+      "question": "What crafts and apps did Pamlea Butler enjoy?",
+      "answer": "Crafting and scrapbooking; she loved Pro Show Producer for animated slideshows and wants a new computer."
+    },
+    {
+      "type": "qa",
+      "question": "What online content does Pamlea Butler enjoy watching?",
+      "answer": "YouTube African bee movies and grass-cutting videos like SB Mowing."
+    },
+    {
+      "type": "qa",
+      "question": "What tradition did Pamlea Butler keep for Christmas?",
+      "answer": "High standards for themed, precise decorating; kids were not allowed to help."
+    },
+    {
+      "type": "qa",
+      "question": "Where did Pamlea Butler shop for seasonal decor?",
+      "answer": "Stats on Artesia in Redondo Beach."
+    },
+    {
+      "type": "qa",
+      "question": "What happened to Pamlea Butler's storage in Longview?",
+      "answer": "Her entire storage was robbed, which was devastating."
+    },
+    {
+      "type": "qa",
+      "question": "What are Pamlea Butler's favorite simple meals now?",
+      "answer": "Rotisserie chicken, and salad"
+    },
+    {
+      "type": "qa",
+      "question": "What was a former favorite meal of Pamlea Butler?",
+      "answer": "Hillshire sausage with salad and a potato."
+    },
+    {
+      "type": "qa",
+      "question": "What are Pamlea Butler's favorite restaurants?",
+      "answer": "El Torito’s (Mexican Chicken Caesar), Chili’s, and Carter’s BBQ in Longview (rib + link sandwich)."
+    },
+    {
+      "type": "qa",
+      "question": "What dessert does Pamlea Butler like from the Smokehouse on 259?",
+      "answer": "Fried pies, especially lemon."
+    },
+    {
+      "type": "qa",
+      "question": "Which schools did Pamlea Butler attend?",
+      "answer": "59th Street, and 74th Street Elementary, Horseman Junior High, and Crenshaw High School."
+    },
+    {
+      "type": "qa",
+      "question": "What hairstyles did Pamlea Butler choose for her boys?",
+      "answer": "Jheri curls: 'Curls for the girls, waves for the babes.'"
+    },
+    {
+      "type": "qa",
+      "question": "Did Pamlea Butler experience any notable injuries?",
+      "answer": "She broke her tailbone slipping on porch stairs in the rain on 28th Street."
+    },
+    {
+      "type": "qa",
+      "question": "What is a personal grooming habit of Pamlea Butler?",
+      "answer": "She always kept her nails done, even taking the bus to do so."
+    },
+    {
+      "type": "qa",
+      "question": "How did Pamlea Butler support Rickey Butler during his health decline?",
+      "answer": "She cared for him through Type 2 Diabetes and dialysis like no other.  The attention to detail even impressed Rickey’s Dr’s; he passed on May 20, 2020, the day of his leg amputation surgery."
+    },
+    {
+      "type": "qa",
+      "question": "How did the hospital accommodate the family during COVID when Rickey passed?",
+      "answer": "They allowed ICU access so the family could say goodbye."
+    },
+    {
+      "type": "qa",
+      "question": "Who retrieved Rickey's ashes?",
+      "answer": "Ty with Seqoua."
+    },
+    {
+      "type": "qa",
+      "question": "Who were Pamlea Butler's prayer warriors?",
+      "answer": "Debbie, Sheila, and others."
+    },
+    {
+      "type": "qa",
+      "question": "How does Pamlea Butler feel during holidays without Rickey?",
+      "answer": "She misses him; he was her taste tester for dressing and turkey."
+    },
+    {
+      "type": "qa",
+      "question": "How does Pamlea Butler repurpose Rickey's clothing?",
+      "answer": "She reuses his ties and suits as aprons and blankets for grandkids."
+    },
+    {
+      "type": "qa",
+      "question": "Which grandchild wants all of Rickey's ties?",
+      "answer": "Rajani."
+    },
+    {
+      "type": "qa",
+      "question": "Who does Pamlea Butler still mourn deeply?",
+      "answer": "Her brother Spuggy, whose sudden death in 1979 shook the family."
+    },
+    {
+      "type": "qa",
+      "question": "Has Pamlea Butler become a great-grandmother?",
+      "answer": "Yes. She became a great-grandmother to Naiyomi (spelled N-A-I-Y-O-M-I), daughter of Jadae Nelson."
+    },
+    {
+      "type": "qa",
+      "question": "Which daughter has lupus that Pamlea Butler cares for?",
+      "answer": "Aja (not AJ) Butler."
+    },
+    {
+      "type": "qa",
+      "question": "What do the grandkids call Pamlea Butler and what was Rickey called?",
+      "answer": "Grandkids call her 'Nana'; Rickey was 'Papa'."
+    },
+    {
+      "type": "qa",
+      "question": "Where was Rickey Butler born and educated?",
+      "answer": "Born in Los Angeles, California; attended Manual Arts Junior High and graduated from Washington High School."
+    },
+    {
+      "type": "qa",
+      "question": "What were Rickey's long-term jobs?",
+      "answer": "Over 30 years in labor-intensive work including Bethlehem Brick Company, a 'Maycompany' job with 30-minute walks, and later housekeeping manager at Hollywood Park Casino."
+    },
+    {
+      "type": "qa",
+      "question": "What was Rickey known as in the neighborhood?",
+      "answer": "“Big Rick,” meticulous, loving, funny, and deeply admired."
+    },
+    {
+      "type": "qa",
+      "question": "What hobbies did Rickey enjoy?",
+      "answer": "Fishing at Hermosa Beach and Laundrie Park, listening to jazz, and spending time with family, loving Pam."
+    },
+    {
+      "type": "qa",
+      "question": "What car did Rickey have in the 80s?",
+      "answer": "A brown Firebird that Pam drove like a 'bat outta hell.'"
+    },
+    {
+      "type": "qa",
+      "question": "What vehicle did the family use for coastal rides?",
+      "answer": "A conversion van for Malibu, Oxnard, strawberry patches, thrift stores, and A1 Burgers."
+    },
+    {
+      "type": "qa",
+      "question": "What nightly habit did Rickey have at home?",
+      "answer": "Keeping a water jug by the bed and wrestling with the kids, while respecting Mama’s 'don’t play' rule."
+    },
+    {
+      "type": "qa",
+      "question": "What memorable dish did Rickey cook in the 80s?",
+      "answer": "A dish with Ranchero meat, julienned carrots and onions, made while jazz played."
+    },
+    {
+      "type": "qa",
+      "question": "How did Rickey respond when Pam had a torn aorta?",
+      "answer": "He stayed by her side nonstop even with his type 2 diabetes issues."
+    },
+    {
+      "type": "qa",
+      "question": "Who buried Yasha with Uncle Junior?",
+      "answer": "Rickey Butler did, in the backyard."
+    },
+    {
+      "type": "qa",
+      "question": "What did Rickey tell Ty about his kids?",
+      "answer": "“I love my kids. I’ll never turn my back on y’all.”"
+    },
+    {
+      "type": "qa",
+      "question": "When did Rickey pass away and how long were they married?",
+      "answer": "He died May 20, 2020; they were married 44 years (anniversary debated as Sept 17 or 19)."
+    },
+    {
+      "type": "qa",
+      "question": "How were Pamlea Butler and Rickey Butler introduced?",
+      "answer": "By Linda Butler (Rickey’s sister)."
+    },
+    {
+      "type": "qa",
+      "question": "What was served on their first date?",
+      "answer": "Fried chicken, spaghetti, Jiffy cornbread, and Kool-Aid. Rickey never left."
+    },
+    {
+      "type": "qa",
+      "question": "What did Yasha do if a curtain blocked the window?",
+      "answer": "Yasha tore down the curtain to keep watch."
+    },
+    {
+      "type": "qa",
+      "question": "What was Mama Lil’s small poodle named?",
+      "answer": "Pierre."
+    },
+    {
+      "type": "qa",
+      "question": "What happened with Ty’s first dog as a kid?",
+      "answer": "The dog ran from the house to meet Ty after school daily."
+    },
+    {
+      "type": "qa",
+      "question": "What were key addresses or areas in the family timeline?",
+      "answer": "82nd Street and 5th Ave; 5th Ave; 2nd Ave with the West family; 28th Street; 10th Avenue/Burnside; Inglewood (moved Oct 1987); and Longview, TX (moved around 2007)."
+    },
+    {
+      "type": "qa",
+      "question": "Who taught Ty to skate and who protected him on 2nd Ave?",
+      "answer": "Reuben taught Ty to skate; Marlon 'Mar-Rock' West protected him."
+    },
+    {
+      "type": "qa",
+      "question": "What happened to Pamlea Butler on 28th Street?",
+      "answer": "She slipped on porch stairs in the rain and busted her tailbone."
+    },
+    {
+      "type": "qa",
+      "question": "When did the family move to Inglewood and what happened later?",
+      "answer": "They moved in Oct 1987; later moved to Longview, Texas, after Mama Lil passed, around 2007."
+    },
+    {
+      "type": "qa",
+      "question": "What is Pamlea Butler's current mobility goal?",
+      "answer": "She wants to walk more for Naiyomi’s future."
+    },
+    {
+      "type": "qa",
+      "question": "What phrase did Pamlea Butler use when calling someone?",
+      "answer": "“You better not say ‘huh’ or ‘what’ when I call your name.’”"
+    },
+    {
+      "type": "qa",
+      "question": "What scripture themes does Pamlea Butler favor?",
+      "answer": "Strength in suffering, joy after pain, family legacies, and God’s protection and provision."
+    },
+    {
+      "type": "qa",
+      "question": "What creative goal does Pamlea Butler have now?",
+      "answer": "To scrapbook again and find a Pro Show Producer alternative."
+    },
+    {
+      "type": "qa",
+      "question": "So what is your full name, and were you named after anyone?",
+      "answer": "Pamela (Pam) Louise Henderson, and not to my knowledge."
+    },
+    {
+      "type": "qa",
+      "question": "Okay, question two, when and where were you born?",
+      "answer": "Midland, Texas. When I need full details. Oh, Midland, Texas, June 4, 1954 in Amy's house. Okay."
+    },
+    {
+      "type": "qa",
+      "question": "Which one in Texas or California?",
+      "answer": "Let's do a little bit of both. Kind of give me how it all happened. You Born in Midland. You moved to Denver. You were raised in Los Angeles, and in Midland, we lived in Amy's house. I can't remember the street. I think it's some 801, East Texas. It was nice. And then we went to Denver with ain't lil. The mama moved to Denver, and we stayed with ain't lil for a while, and we came back to Midland, and then I started kindergarten. Well, actually, we stayed with Mama Liddy for a while in Malone, Texas. And who is ain't Lil Mama Liddy and Amy. Who are these people? My aunts and these are big mama Mamie Sorrell children. Okay, okay, okay, we stay with ain't literally in Malone Texas for a while, because Big Mama watched a little at least two boys while she worked. And we came back to Midland and stayed with Annie for a while, and I started kindergarten, and then I went to first grade and second grade in Midland. I also did preschool in Midland. Then we moved to California with Aunt lil when I was in the third grade, and I stayed there with ain't lil for third, fourth. And then Big Mama came back to Midland when I was in the fifth grade. I did fifth grade there, and then I wanted to go stay with my mama in Denver, so I went when I was in sixth grade. And what's her name, Esther pearl. Okay. Did she go by that? Yes, okay. And then I stayed there for a year, and I didn't like it, because I wasn't used to the lifestyle that my mama lived, because that wasn't a lifestyle that I was brought up in. So I called my grandmother just before graduation, I told her to come get me. Come get me now. Then mama came and got me, and we came back to to LA and I did the seventh, eighth I did the rest of my years in Los Angeles, till I got pregnant with Jade. Okay, okay."
+    },
+    {
+      "type": "qa",
+      "question": "What are some of your earliest childhood memories, good and or bad?",
+      "answer": "What do you mean like if you sat there and you thought about some of the stories as a child, not necessarily a teenager, but as a child, what are some of your memories that. You have, like living in some things that stick out when you were living in like Midland and Los Angeles in the beginning years. Well, living with Big Mama, I can remember being around all my aunts, ain't Helen ain't lit Lee, Raina Amy and Big Mama's son, Ernest. They called him Big Brother. I didn't like him, because even as a little kid, he he was a a bully, and he used to pull my hair and, I mean, he used to pull it hard, and I didn't like him at all. I didn't want to be around him, you know, but that was Big Mama's only son, and he would come around, he was an alcoholic, and he would come around and and then when he get ready to leave, he would catch one of my ponytails and just yank it. And I didn't like him. And I can remember seeing all my cousins with their moms and dads, and I didn't have a mama and a daddy. My grandmother raised me. I can remember stories Big Mama telling me about my mama, how she became to raise me, that my mama gave me to some woman in a hotel, and Big Mama found out, and Big Mama wouldn't got me. I was still an infant, and she got me, and that the lady, Big Mama said, The lady told her that pearl gave me to her, and Big Mama said, no, she gave you nothing, and she took me, and Big Mama raised me. I can remember calling Big Mama Mama, and she would tell me, I'm not your mother, I'm your grandmother, but I'm raising you. And so big mama took care of me. She walked me to school because Amy's house lived around maybe two blocks away from where her house was, and Big Mama would walk me to school, and that's before we moved to California, and she would walk me, and she took good care of me. So I remember those and then coming to LA I remember coming to LA, and it was good, you know, and me and spooky became really close, like brother and sister, but I can remember that I don't care how much I tried to fit in, I never fit in with my my aunts. I knew they loved me, but not as their children, and that used to bother me. So I'd said when I was young that when I got grown, my kids would know their mother and father. Station. Okay,"
+    },
+    {
+      "type": "qa",
+      "question": "can you tell me your biological mother and father's name?",
+      "answer": "My mom's name was Esther Pearl, uh, sorrows. My dad's name was Hugo Henderson. I never met him, never saw him. I remember speaking to him once over the phone when I was, oh, I had to be about seven or eight, and he said he was coming by to see me, and he didn't come. They said he was sick. So I don't know. I remember him sending me a porcelain doll. I cherish that doll. And big mama used to take care of a little girl, and she wanted to see my doll, and Big Mama said, let her hold it, and I let her hold her. And when her mama came through Andy's front door, she threw my dog down and broke my dog but I never got to meet my dad. So when I came out here, I had to be younger than that, because when I came out here, I was eight, and and Lil said she was going to take me to see my dad, and he stayed in joy, stayed there Bakersfield, and she's going to take me to see and we were going to go down and I finally get to meet my dad, and he died before we got to Go down there. So I never knew any of my brothers and sisters on my dad's side. Supposedly, I was the youngest on my dad's side and the oldest on my mother's side, because my mom was 2122 when she had me, and he was 54 he was in his 50s. So I never got to see him. So when he passed away, one of my sisters, Sandra, she came down, but she was, she was an adult. She was in her 20s, and she came down to visit me. And I was so proud, you know, I had a sister and and that was the first and the last time I ever saw her. So I don't know any. Anybody on my daddy's side? I don't even know what he looked like. They just told me I had his eyes and I had a picture of him, but it was so grainy and so spoiled, you couldn't tell. And it was him sitting in a like a restaurant, on a bar stool, and my mama standing next to him. But you really couldn't I couldn't see his face because the picture was old, so I don't know what he looks like. If he'd have walked up to me, I couldn't have said who he was, because I've never seen him and only talked to him once. I left California to come before I left Midland to come to California, and I was scared to be little because I came to California when I was eight. So who are your brothers and sisters on your mother's side, and what was your relationship like with them as a child, I didn't have a relationship with them because I didn't grow up with them, Richard, it was me. Richard Jr, RV, RB, they called him Junior. And then Gretchen, she was a twin, but her twin died at birth, and then Larry lanetta, me and Richard, for some reason, were close. All you know, we were real. When I stayed in Midland, we stayed in Denver that year with them. Me and Richard became really close. And my brothers too, my brothers and sisters too, we were close, but I didn't really know them, because I didn't grow up with them. So I don't know anything about them because I was with Big Mom. I didn't you know that one year I was there when I was in sixth grade, and then I went back when she went to Portland for the summer. I spent the summer with him, but I didn't know him. I really don't know them. Now, you know I got to you really see Gretchen and linetta when I had you guys, when they came down and spent the summer with me. But I didn't know them. RV came down and met you, and Jade is before I had Asia, and he came down and spent a couple of weeks with us, and we stayed on 82nd and Vermont, and then he went home, and he had epilepsy, and he had a seizure and died. So I, you know, and then Gretchen passed, so it's three of us left. Well, no four. So she had six kids, three boys, three girls. Okay, so now it's two boys, two girls."
+    },
+    {
+      "type": "qa",
+      "question": "Well, when I started talking to Big Mama, when Big Mama started raising me, she was 66 years old, huh?",
+      "answer": "No, when I was six years old, big mama told me her age. She I was six and she was 66 and I never forgot that. That's how I knew Big Mama's age. But she was retired. I mean, she used to, she used to clean houses before I was born, and that's what Amy did. A little I never knew what she did before she became a beautician, and then she became a beautician, and that's what she did. But uh, Big Mama was. Her mom was a slave, but big mama wasn't. She wasn't born in this but her mom was"
+    },
+    {
+      "type": "qa",
+      "question": "so when you were a kid, what chores or responsibilities did you have?",
+      "answer": "I didn't big. Mama did everything. I didn't have to do anything. I didn't have chores like kids had to clean the kitchen and mop. I didn't have to do that. Big Mama did it. If I did it was because I wanted to, or if I seen she was sick, I didn't feel good, I did it. But other than that, she was up way before it was time for me to go to school, and when I woke up, my breakfast was ready and I went to school. When I came home, my dinner was ready. My clothes was washed and ironed. I was just a kid. I got to be outside and enjoy being a kid. I didn't have chores, me nor school. G we didn't have chores,"
+    },
+    {
+      "type": "qa",
+      "question": "did y'all? Did y'all have any traditions that meant a lot to you?",
+      "answer": "No, no, no, we didn't have any family reunions or anything like that. I just remember Big Mama's daughters would come down every summer. You. And visit her that I always felt like I was second, because her daughters would come down and they kids, I noticed she hadn't seen them in a year, so all her time was spent with them. So I kind of shifted in the back and didn't bother nobody or nothing, you know. And the name Lil spoogie was number one, you know, you know, Betty was her daughter, but spooky was number one, whatever spooky wanted or needed, that's what spooji got. I was always she never neglected me, but I was never like her daughter. And I saw I"
+    },
+    {
+      "type": "qa",
+      "question": "What kind of food did your family cook the most any favorite dishes from your childhood?",
+      "answer": "It's cooked soul food. You know how you know black people, black families, was Big Mama could soul food. She used to make a lot of tea cakes. And I can remember going to school and telling her before I leave that morning. Big Mama, can you make me an egg pie, which is egg custard, but I say egg pie when I come home, my pie was there, and she used to be do homemade bread, and Tony would try to eat a whole loaf. So as you know, me and Tony been friends. I was eight. She was seven. That's how long me and Tony been friends."
+    },
+    {
+      "type": "qa",
+      "question": "Did you ever have a pet as a kid?",
+      "answer": "Yes, yes, yes. Bail, that was our pet. She was a, German Shepherd. Yeah, that was our pet bill. We love Bell. Bell loved us. And then a little got Pierre, which was a poodle, but he was a Lil's dog with his little, little self. He'd act like we didn't hurt him, and he'd be limping, and they would get on us. Y'all hurt Pierre Ain't nobody hurt that dog. Sleep watching this. We say, look, look, Mama, he ain't limping now, limping. So, yeah, we had pets. Pierre Bell,"
+    },
+    {
+      "type": "qa",
+      "question": "Was there like a moment that defined who you were or what direction you were going in in life?",
+      "answer": "None that I can think of right now. I just went to school. I didn't get into trouble. I didn't do drugs. It's like spooky and Tony and all his little friends, they smoked weed. I didn't he had a couple of friends that got into pills, because when we was going to school, the pills Red Devils, and all of them was big times. And he had a couple of friends that were into pills, and I used to see how they act, and I was like, if it do that to them, it'll do that to me. I'm not gonna take that mess. And then I had to figure out, you know, I deal with this. I gotta deal with Big Mom, so I'm I ain't taking note. I didn't get high. I didn't get high till me and your dad got together and I started smoking because he told me, you don't do nothing, you don't smoke, you don't drink. I still don't drink. I smoked weed for a little while, and I stopped. We both did,"
+    },
+    {
+      "type": "qa",
+      "question": "if you could, if you could relive a childhood Day, which would it be and why?",
+      "answer": "If I could relive a childhood day, early childhood day, not teenage years, early childhood day, I don't know, Ty I didn't have a bad childhood, you know, big mama made sure I was taken care of. If she thought something was dangerous. She didn't allow me. Glad a cousin that Big Mama didn't allow me around him. She's, you know, if you see David Lee, you come on back in this house, or you come on over here. He don't let him be touching you or not. And I couldn't understand that, because he was Bobby Jean's husband. I. Her, but big mama didn't like him so but I didn't. I had a good childhood. I may not have come up with my parents, but my grandmother took very good care of me, and I'm grateful, because only God knows what would have happened to me if I'd have stayed with my mama, because my brother went through some stuff with her. I didn't, I didn't go through it just like I told my sister lanetta, she was talking and I was like, Well, you don't understand what Richard went through. You weren't even born. Richard went through a lot with your mom. You know, he was molested. He told me how she would bring men to the house, and he'd have to hide up under the bed, and when they take their pants and stuff off, he'd have to go through their wallets and take their money. See, I didn't, I didn't go through that. Actually, me and Fuji thought we were rich. You know, we went to 59th Street School, and then we decided that we didn't go to want to go to 59th Street School, because only poor kids would went there. We wanted to go to 74th Street School, and yo took us out and put us in 74th Street schools. No Uncle Frank would bring money home, and we always had money. Me and Fuji had money. Uncle Frank gave us money. And if we were outside playing with other kids, me and he give me a spooky $5 and all the kids around us, he'd give them $1 so they they just thought, wow, I can remember one time spooky them was doing a lemonade stand, and me and Tony wanted to do it, but we didn't have no money. So we collected all this pop cans bottles, and we were taking around the Fourth Street liquor store to sell the bottles to get us money so we could start us a lemonade stand. And Uncle Frank saw us. He had a fit. Oh, What are y'all doing? So we're gonna sell these? No, y'all ain't selling nobody. He made us leave them bottles in that wagon on the street, and he gave us money to start a lemonade stand. I can remember spooky, getting sick, and he had the measles, then he had the mumps, and, uh, Uncle Frank and ain't lil told him whatever he wanted he could have. So he called me, said, Pam, I can have anything. What should we get? I was like, I don't know. He said, gotta think of something. And I said, a piano. And he told a little piano. We got a piano. I can remember, Uncle Frank asked me, what do we want? And I told him I wanted a new bike. And he brought us men's food to these bikes called, I forget the name them, but they were high class bikes. They were gold, and they were, oh, they were nice. And we got bikes so it was anything we wanted. We got so I didn't suffer. I don't know what my brothers and sisters went through, but they didn't. Their life wasn't like mine. You know, I can remember going to school and coming home and I'd have outfits already laid out on my bed. Big Mama done went shopping her and ain't little. And so I had a good childhood. I really did. My childhood was a little better than what I could do for my kids. You know, I couldn't give them the stuff that I was given because me and Dad went through a lot of things. You know, he had to start over several times, but we were just good parents, at least. I hope we were good parents."
+    },
+    {
+      "type": "qa",
+      "question": "We're going to go into Section Two teenage years. So the first question will be, who was your best friend and what did you guys do together?",
+      "answer": "I had several best friends, teenage years. I want to say Tony, but every time me and Tony got together, I got in trouble, because Tony was something else. And then Jay's godmother, you were accused of stealing this money. Terry, we did a lot of stuff together because she lived around the around the corner, across the tracks, and so I became good friends with Terry, Terry McCoy, and we just did what teenagers do. I never got into any trouble or anything like that, experimenting on stuff. I didn't do that. And then the girl across the street, Deborah, we were good friends, and I used to do stuff with her. And she was a year she was two years older than me, and I would do stuff with her. I go over to her house, over there, so, yeah, and then Kathy, that's. Eight next door, the Allens. I was in the Girl Scouts with her. Her mom was the Girl Scout leader. So I did Girl Scouts with her, and then they moved is the Jeffersons. They moved up. So then we didn't, we didn't hang around no more. I didn't see her, really, until spooky passed and she came, but I was already married with kids. Okay, in school, high school, what was your favorite"
+    },
+    {
+      "type": "qa",
+      "question": "subject and your least favorite?",
+      "answer": "Marine biology was my favorite. What was my least favorite English? I wasn't good with English at all. Okay. Do you have a favorite teacher? And why? If you do all the money, marine biology. I can't remember his name, young white man, but he was so cool. And he just he worked with the kids. He understood them. And then I even my I had an English teacher in Miss Washington. All the boys liked because she was cute, but she was real down to earth. And she would talk to us and tell us, young girls, you know, what to do, not to do what these little boys want. She was real cool. Miss Washington,"
+    },
+    {
+      "type": "qa",
+      "question": "okay, what was your style like as a teenager, did you follow trends or set your own?",
+      "answer": "I guess I've we followed trends. Big Mama was one. I didn't go shopping. Big Mama did all my shopping, and she had good taste. She had good taste. So okay, who or what inspired you the most in your teenage years. What do you mean? Like,"
+    },
+    {
+      "type": "qa",
+      "question": "was it a person, or was it music? Or was it anybody in your family?",
+      "answer": "Okay, as a teenager who inspired me the most? You know what I'd have to say, Miss Allen. She was Kathy's mom. I admired her. I watched her with her children, Mister Allen, which was her husband, and they live right next door, Jane Lill, across from Miss Sally, and I admired her. And I used to, I can remember thinking that when I grew up, that's the kind of mama I want to be, because I admired how she raised her kids. Okay,"
+    },
+    {
+      "type": "qa",
+      "question": "Any favorite singers or bands?",
+      "answer": "Yeah, I like all music. When the Jackson Five and just all music, I liked all music. I still do I like all music. I can't remember one specifically."
+    },
+    {
+      "type": "qa",
+      "question": "Did you have a first job? What was it like?",
+      "answer": "Babysitting? I was with. I loved kids, so I would babysit the kids on the block, because Tony, she didn't like kids. She said, you babysit. I would babysit. I can remember babysitting because I wanted to give big mama something special for Mother's Day. She would talk about how hot the back house would be, and I wanted to get her a fan. So I babysitted. The boys first. They used to live right next door where we stayed on Fifth Avenue. I can't remember that little girl's name that liked you. Can you see? Yeah, they stayed there. It's Tony's family, his family, his twin boys and I babysit them. And then the next year they moved, and then I started babysitting the ones next door to her. She had two or three girls, and I babysitted them. And then when Deborah had her baby, so I was with her baby, I think I. Only one on the block that would do anything with her, because, you know, once you know they were like this, if you had a kid, then they you something was wrong with you. You were you were bad, so nobody wanted to deal with you. But I didn't have a problem. I went over and discovered, because I thought our mama had a baby and it was her. I started hanging out with Deborah again, and I always had many so I always was with kids. It was some kids involved. I was there. I wanted to be around them."
+    },
+    {
+      "type": "qa",
+      "question": "Okay, what was one lesson you learned as a teenager that may still stick with you today?",
+      "answer": "Not to follow people. Okay, now we move on to section three. We're halfway through it. And this is question 26 section three only has five questions. But these are, these are the questions that you know. I'll tell you the section is the Section three is love and Ricky Butler, first question,"
+    },
+    {
+      "type": "qa",
+      "question": "How did you meet dad? What was your first impression of him?",
+      "answer": "I met Ricky when I stayed on 65th in Vermont. His sister Linda stayed up in the apartment next to Big Mama. Used to be in Lee's apartment, and I met him through her and I saw her brothers, I saw Clint, I saw Charles, and then I saw Ricky. And Charles had to try to talk to me. I didn't want to talk to Charles. He was he drank too much, and I didn't like Clint because he had a bad attitude. And I said, Well, if I talk to any of your brothers, it would be Ricky. So she had told Ricky and and me, and Ricky went and took me to the drive in me and Jay, because he thought I had more kids. And he told him, Oh, she got all them kids. She said, it none of her kids. She just be braiding them kids hair. And he said, Oh. She said, the heart she only got one, the little boy that's always up here with me. So she always had Jade. She was pregnant with Mika and me, and Ricky went out, and we've been together ever since. Okay,"
+    },
+    {
+      "type": "qa",
+      "question": "I know you didn't have a traditional wedding, but what was the day like when you guys did get married?",
+      "answer": "It was beautiful. It's me, Ricky and Lil and Uncle Frank, they were our witnesses. And then we didn't have a reception. Uncle Frank, ain't lil. They gave us a, like a little reception party, but it was Lorraine's granddaughter's birthday too. So it was all combined. It was at Uncle Frank's club, and we did that. That was it. We never went on a honeymoon. We were okay, what"
+    },
+    {
+      "type": "qa",
+      "question": "or what's one of your favorite memories of you and dad together?",
+      "answer": "Our anniversary. I can't remember which one it was, but he was at the casino, and he got us a room, and I went in and dressed, and I had on a Teddy, and when I came out, he just grabbed me and hugged me and picked me up. He made me feel so beautiful. That was one I have many, but that was the one that really stuck with me. I think about that a lot, boy, you got me in tears. Okay, let me see what's the next. Okay, was there any unique or special about your relationship that people might not know. Like what I mean, is there anything that. That you and dad shared that was special to you, that people might not know. It's probably a lot because we didn't share our stuff with nobody. Okay, um,"
+    },
+    {
+      "type": "qa",
+      "question": "what was you guys life like?",
+      "answer": "Early in your marriage, I can't see you no more, okay, what was your life like, like newlyweds, early in your marriage, it was good. It was really good. When we first got together, our our life was really good. He worked for Bethlehem Steel. I didn't work at first, and then I got me a job at Red Cross. So we were both working. It was good. We had our times and our our little differences our first five years. You know, his mama made him feel like he was in a rut. And so he left. He left me for my birthday and went to Oakland. And I don't know, I guess my girlfriend, Linda Carter, Linda Totten, her boyfriend, he was down at the house, and the phone rang, and he answered it, and I don't know, your daddy must have thought somebody else was trying to get his pool tank. And he came back and Arthur say he'd be back because he thinks somebody messing with you. And I said, Yeah. And He came back, and we've been together, so a long time me and me and grandma didn't get along Long time, not until after Big Mama passed. I don't know when something clicked on it. Big Mama passed and she changed. She didn't she didn't like that. I chose my kids over drugs Well, her daughter didn't me and Linda were close. We were really close. But when she started doing drugs over her children, I was I'm done. My kids are more important to me than trying new drugs. I never do nothing but smoke a little weed. She did everything, anything that was unseasoned. Linda did it. Okay. Well, that transitions us into section four of five sections, and this section is motherhood and family life, room. Question 31"
+    },
+    {
+      "type": "qa",
+      "question": "will transition to the years as a mother and raising our family. What was it like becoming a mother for the first time?",
+      "answer": "It was beautiful. I wanted to be a mom because I was truly in love with Jay's dad, he was my first boyfriend, my first love, and with nothing I wouldn't do for him. But that didn't work out, because we were young, so I was okay with that, and I enjoyed being a mama, and then I'm me and Ricky got together when Jay was two, and we were together two years before you came."
+    },
+    {
+      "type": "qa",
+      "question": "That's perfect for the next question. How did you choose my name?",
+      "answer": "You know what, Ty I don't know. Tony told me I had a friend, and that was her name, but I don't remember who this friend was, that I was that close to that I named you Tyease. And so I named you Tyease Myron Butler. And then when you were born, you were born on Craig's birthday, Ricky's baby brother. And he was like, he gotta have something to me. He born on my birthday. So I thought, and I said, Okay, so I named you Tyease Myron Jerome Butler. And Jerome is Craig's middle name, so you and Jay have two middle names, and Asia only has one. Okay, how would you describe me as a little boy? I. Like, well, when you were first born, you were sickly, real sickly, where we didn't know if we were going to be able to keep you, you know, we didn't know if the Lord was going to take you home or not. But then when you turn eight months old, it's like you just blossomed, and you were fine, Jewish, mischievous. You got into everything. Lord Jesus, you got into everything. But Jay was your big brother, and he would not touch you. He's like, I can't hit my brother. Why he hit you, but, uh, but she was a smart little boy, a very intelligent little boy. Sorry to remind me of Kobe, a cute little kid. One"
+    },
+    {
+      "type": "qa",
+      "question": "of my girlfriends wanted you to be her child, and she would keep you when I had to work and she didn't work. We worked the same hospital, same uh, place, and she would keep you. And then she told me, I'm coming up to get my check, so don't you say nothing. I said, okay, so she brought you, and everybody was telling, Oh, he's so cute, Linda, he's so cute. And I stood up, and when I stood up, you saw me. Said, mommy's like, what you stand up for?",
+      "answer": "I just stood up to see who was in the office. That's Pam's son. Yes, that's my son. What a funny or unexpected thing I did as a child that you'll never forget. Okay, there's several. One was with your dad, and I was pregnant with Asia, and so I was in the doctor's office, and y'all was sitting in the car. You Ricky, Ty y'all was all sitting in the car waiting on me. And your daddy told you, you see that woman across the thing that's my girlfriend. Don't say nothing. Don't let your mama know. And Ricky said you wrote the window down and hollered at it, you my dad's girlfriend last then there was one where I was at the Ferguson, and it was this woman in front of us, and we're waiting to make our order, and she was pretty. You were staring at that woman so hard you I guess you gave her a compliment, because she just kind of she would hold her head down, and I said, Time, quit staring at her. He said, but she's beautiful. I said, I don't care. Quit staring at her. And she just laughed. The Lord my son. Then there was one with your auntie Robin. You liked her because Robin was always dressed and makeup and nails, and she wore stockings. And used to like to sit next to her and rub her stockings. And I was like, Oh, my boy, love women is one. When your uncle Fuji passed away, it his girlfriend was at the sink washing dishes. And you see, you was three, maybe four, and you walked up to her, and you saw always, you know, Gucci Gucci Gucci. And you did that to her, and she said, Oh, mama, I just bought some Gucci Gucci Gucci. He stuck his hand in my stuff. Come here, boy, let me wash your hands. Good. I said, Oh, Lord. She said, Who this boy? And I said, Yeah, that's that's Ty. All right, what was the most challenging part about raising me? I I don't know Jay was my challenging to see he was all right, because he became a teenager, and then he thought he was grown, and he sent me through changes, worrying about him. Because, you know, we lived in a gang neighborhood and, oh, I didn't have that problem with you. I guess you was, you would more like me as a little say, I bloomed late. So you bloomed late. You didn't, you didn't hang out then when you and Jamie and Dean, y'all hung out together, but I didn't worry about y'all in gangs like I did Jay. I just all I could do was pray, and Jay kept me up on Monday night, by the grace of God that that he's he's still here, but no. I think the most challenging one was you got to be older, and you decided that you didn't want to live with me no more. And you went and moved with Tony. You went out there to Tony, and I was talking to Tony and and she said, Don't worry. He, he Alright, he, you his mama. I said, Yeah, but he kept feelings, you know, he told me he didn't want to live didn't want to live with me no more. You know, he was tired of living in poverty, so he came out there with y'all, and he got a job at Big flags, Six Flags, Six Flags. He stayed with Tony and but what happened when I got sick? Come running home to mama? Yep, yep, Tony, say he's sick. I didn't took him to the emergency room. He's got strength, though. And she said he want to come home, but I told him I could take care of him. And he's like, No, go home to my mama. You came home and I took care of you. I remember your I think it was, I don't know if it was your first paycheck or your second you bought me a CD player. I still have that CD player. I can't remember if it was for my birthday, a Mother's Day. I think it was my birthday, and you bought it for me. I still have it. I still have the camera that you bought me. How did go ahead? I used to take apart stuff to see how it worked. You would take my radios apart everything, and I tell you, better put them back together, and they better work when you put them back together. And they did. They did. You was real inquisitive of how stuff works."
+    },
+    {
+      "type": "qa",
+      "question": "Oh, being a wife and a mother was my priority. I lost me in the midst of that. I was always last. It was never me. It was always about my family. So I forgot who Pam was. I was mama and why?",
+      "answer": "All right, this is the last question in this section."
+    },
+    {
+      "type": "qa",
+      "question": "When you look at our family today, what do you feel?",
+      "answer": "What do you mean? What do I feel like? What do you think about your family and where everybody has come from the beginning to where everybody is now, I look at my family, and I looked at what me and Ricky created, and where y'all Come and where y'all are. Now, sometimes I ask myself, was I good mama? I look at some of my other friends and their children and what they've accomplished, and my kids and how we had to go through so many different changes, you know, but y'all still turned out to be good men and women only my grandkids. So I figured, you know the Lord, he knows what he's doing. So I look at my kids, I love y'all 100% ain't nothing I wouldn't do for you. I still don't want to say I don't know who Pam is. I still don't, because I still put my family before me."
+    },
+    {
+      "type": "qa",
+      "question": "Okay, last section, Section five, life lessons and wisdom. These questions are about your wisdom, your experiences and what you've learned over the years. What did you dream your life would look like when you were younger?",
+      "answer": "I don't know. All I ever as a young kid, all I ever wanted to be was a mother and a wife. I wanted a family. That's all I ever wanted, where people dream of being lawyers and doctors and I. All of this, mine was I wanted to have a family. I wanted to have what I didn't have. I wanted to get my kids what I didn't have, which was a mama and a daddy and a family. You know, I had big mama and I was well loved and well treated. But there's a difference when kids grow up with their parents, you know, because I looked at kids growing up with their parents, and I didn't have that. My grandmother did everything she could, and she was an older lady, so she didn't really have education and stuff, but she did everything she could for me the best way she could. So that's all I ever wanted. Was a family."
+    },
+    {
+      "type": "qa",
+      "question": "If you could go back and give your younger self advice, what would you say? Nature?",
+      "answer": "Nature, stay in school, go to college when life plays dirty, so that you could be a better parent. World cures lights for physically, mentally, financially, I didn't do that. My whole goal was just being a parent. I thought we did not. What are you most proud of in your life so far, many government agencies my children,"
+    },
+    {
+      "type": "qa",
+      "question": "Oh, what was the hardest decision?",
+      "answer": "Healthy Living is a way of life. You can't ignore the tools that you're cooking on. Caraway has a whole range of cookware to bakeware, pepware, food storage and so much more that is completely free of toxins, no more chemicals. That's a big deal to me. And deal now you can think of, let me let you know what was one of the happiest moments of your life. He's gone through this phase right now and becoming a grandmother. Then Rajani, JJ and then my latest two, TJ and Kobe, my grandkids, and now I'm a great grandmother. This religion is all about. Have you ever had a moment when you felt God's presence very strongly? Oh, yes, yes. Sounds Yes, more than once I felt him this morning. Some I just woke up feeling good, no pain. And usually that never happens. I wake up with pain all the time, but I got up this morning, I had no pain, and I could, I could feel the presence of God over me, and I just started praising him and worshiping him and just thanking him, you know, for being there for me and my family and watching over my Family, because he has, he's, he's been there, and I just thank him. I thank him for giving me the knowledge to was able to take care of my husband, because I know a lot of people would. I'm grateful I felt him so many times. Yes, I am. I feel him now. I'm not in any pain, because usually by now I'm hurting, you know, so I've been I've been good. I'm cleaning my carpet by myself. It's hard, but he's giving me strength and stamina to do it, so I'm grateful. Okay, what are the biggest changes you've seen in the world during your lifetime? You. You how children since I was a kid, they're not respectful, and the world is so evil. It wasn't like that when I was young and coming up, I got to be a kid and a teenager without fear, and Lil and Big Mama didn't fear for us going out in the evenings when we were teenagers. Now you have that fear that your child will go out and not come back, even the fear of going to school and not coming home. We didn't have that fear then how people stopped loving the Lord and living in the world with Satan, that that wasn't like it when I was a kid, there was more mamas and daddies when I came up than it is now. Very few have a mama and a daddy in a home. Very few. How do you want people to remember you as a kind hearted person that cares about people a good heart? Yeah,"
+    },
+    {
+      "type": "qa",
+      "question": "what lessons about love Have you learned over the years?",
+      "answer": "Love is strong and it don't happen overnight. It grows so the love that me and your dad had, it grew. It didn't just just, it didn't happen overnight. You know, we first got together, say it was love, but that was love and lust, but we stayed together to where it grew into a strong love. And a lot of people don't have that love. They they they're together today and divorced tomorrow. And we didn't do that. We stayed together no matter what. Times wasn't easy, but we had each other. What lessons about life have you learned that you hope I'll remember being strong and putting your trust in the Lord, knowing that he has you and that there is a lord, a living God, and being a good dad the way you had a good dad, no matter what happens that your children are first, God is first then your children. That's what I want my kids to remember, even when they become grandfathers. So what's one thing you've never told me that you think I should know? We believe he was squatting that and when he was in your home, he drank some refrigerator that milk was waste. A compound. I guess it would be when I was in the hospital and at one point, well, I haven't told anybody this. I thought I was going to die, yes, and I had to pray and ask the Lord not to take me, because I had to be here for my husband, because nobody was going to take care of him the way I would. They weren't going to have the patience with him the way I did. I mean, they'd have patience, but then they would get tired of it where I didn't. And I can remember going down for the last time. If that that bubble on the side of my aorta hadn't gone down, I was going to have to have open heart surgery. And it took me down. And when I went down, it was flat, and I just started praising the Lord and thanking him, because I know that was him. And I remember my nurse coming in, and she said, I heard you. I said, you heard me? She said, Yes, ma'am, I heard you. I said, Well, what she said, I heard you praising the Lord. I said, Yeah, because he's the one that healed me. And it's been flat ever since. Every year that I go, I gotta go on the 25th of this month to have it the CT scan to make sure it's flat and nothing. But in my doctor, he checks, I love doctor Chester. Thing. He make sure I don't have any blood clots anywhere anyway, and he's so pleased, because he said, most of my patients, if this would have happened, I'd have been operating by now. He said, But yours is, is? I said, it's, God. He said, I know. So I never told anybody. I think, I think the only person that knew I was feeling like that was Sheila and Debbie, cuz they came to the room that next day and prayed over me. And I was like, yeah. So yeah, I felt I didn't think I was going to be here, but I had to be here for my husband. I couldn't leave him. So I knew you guys would take care of him, but y'all had your own families. Y'all, y'all couldn't take care of him the way I would. So yeah, okay, what advice would you give to a young mother or young mothers today? I teach your kids to be respectful and kind and love them more than you love yourself and materialistic things, it's not being a mother. It's nice to have those. But if you're not teaching your child how to have respect and manners and to respect elders and other adults, then"
+    },
+    {
+      "type": "qa",
+      "question": "what are you teaching young mothers?",
+      "answer": "So you gotta love them more than going out buying them $200 shoes, that's not teaching them anything. How do you define happiness? Now? I I don't know, it's been a long time since I can actually say I've been happy. I mean, I'm not, I'm not sad, but I don't, also don't see happiness. You know I struggle, and I don't know what that is. I can't explain it, and I know you can't look for someone else to make you happy. So I've turned to the Lord, because he has to be my grace and joy. He's the only one. So I can't look for my kids to make me happy or my grandkids to make me happy. I have to look to Pam. And that's what I said I was going to start doing, is doing things that make Pam happy, like my September 22 my I can't even think of the word that I do, my crafting that makes me happy, and cooking for my kids and getting things for my grandkids and just loving them that makes me happy, being around my kids, that makes me happy, but I have to also realize that they have a life, and they have to live their life the way I live mine, because I got to live my life, and so I have to realize that my kids have to live their lives too. These are the last two questions, is there, is there anything you still hope to do or experience in life? Yes, I hope to have a house. I would like to travel a little. I would love to go on a cruise. I'd like to go to Hawaii. Most of all, I want a home where I can enjoy all my family, where you guys can come and kids can play, and we can just enjoy being with each other. I look at Sheila and her family, they enjoy being around each other. Debbie and her family, they enjoy being around each other. You know, they do things together. They have their holidays together. I would love that where I got all my grandbabies and great grandbaby, and we're enjoying each other and enjoying being with each other, not having to be with each other, but enjoy being with each other. That would be that would be awesome. Okay, last question, if you could write a message for future, future generations of our family, what would it say? I. Boom, build it on love and understanding. The Lord on yourself being true to yourself and your children and others, help others when you can, whether it's family or not, just being a good person, that goes a long way. Okay, I think I got everything I need."
+    },
+    {
+      "type": "story",
+      "text": "Pamlea “Pam” Butler was born in Midland, Texas, and became the heartbeat of every home she touched. She and her husband, Rickey Butler, raised their children—Jay, Ty, and Aja—with respect, pride, and quiet excellence. In Inglewood, Pam was the neighborhood mother: firm rules, soft hands, hot meals, and a spotless house filled with spider plants and laughter. She served as a community liaison at Worthington Elementary, took kids to TV tapings, and treated everyone’s child like her own. People knew: when Pam spoke, you listened—and felt loved."
+    },
+    {
+      "type": "story",
+      "text": "Pam Butler’s life ran on faith, family, and food. Holidays were full spreads—turkey, greens, mac & cheese, peach cobbler—with friends like DT, Jamie, and Big O always at the table. She read the Bible daily, kept her nails done, and crafted animated slideshows in ProShow Producer, dreaming of a new computer to make more. Pam and her husband, Rickey, were a steady team for 51 years; when she cooked, he taste-tested, and when life got hard, they held the line together."
+    },
+    {
+      "type": "story",
+      "text": "Pamlea Butler loved Rickey Butler with a lifelong steadiness that taught her children what devotion looks like. Through Rickey’s diabetes and dialysis, she showed up—every appointment, every night—until his passing on May 20, 2020. She keeps his memory near: turning his ties into aprons and blankets for grandkids, telling stories about fishing trips and jazz in the kitchen. Pam carries grief and grace together, still caring for Aja through lupus, and finding joy as “Nana” and great-grandmother to Naiyomi."
+    }
+  ]
+}

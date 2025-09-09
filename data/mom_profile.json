@@ -1,0 +1,14 @@
+{
+  "subject": "pam",
+  "display_name": "Pam",
+  "aliases": ["mom", "mother", "pam lea", "pamela lea"],
+  "relationship_to_ty": "mother",
+
+  "facts": {
+    "full name": "Pamlea Butler"
+  },
+
+  "memories": {
+    "relationship to ty": "mother"
+  }
+}

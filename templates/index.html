@@ -1,64 +1,176 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <title>SoulNode</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        #chat-box {
-            border: 1px solid #ccc;
-            padding: 10px;
-            background-color: #fff;
-            height: 300px;
-            overflow-y: scroll;
-            margin-bottom: 20px;
-        }
-        #user-input {
-            width: 100%;
-            padding: 10px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <title>SoNo – Memory Test UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#0b0f16; --panel:#121827; --text:#e9eef7; --muted:#9fb0c7; --accent:#ffd54a; }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:40px auto;padding:0 16px}
+    h1{font-weight:800;font-size:28px;margin:0 0 6px}
+    .hint{color:var(--muted);font-size:14px;margin-bottom:18px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:860px){ .row{grid-template-columns:1fr} }
+    .card{background:var(--panel);border:1px solid #1f2940;border-radius:14px;padding:14px 16px}
+    .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+    .input{display:flex;gap:8px}
+    input[type="text"]{flex:1;padding:12px 12px;border-radius:10px;border:1px solid #24314e;background:#0e1422;color:var(--text);font-size:15px}
+    button.ask{padding:12px 16px;border-radius:10px;border:0;background:var(--accent);color:#111;font-weight:700;cursor:pointer}
+    button.ask[disabled]{opacity:.6;cursor:not-allowed}
+    .micRow{display:flex;gap:8px;align-items:center;margin-top:8px}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#0e1422;border:1px solid #24314e;color:var(--muted);font-size:12px}
+    .out{white-space:pre-wrap;word-break:break-word;line-height:1.5}
+    .muted{color:var(--muted)}
+    .respHead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+    .dot{width:8px;height:8px;border-radius:999px;background:#6ee7b7}
+    .dot.err{background:#f87171}
+    .loading{animation:pulse 1.1s infinite}
+    @keyframes pulse{0%{opacity:.4}50%{opacity:1}100%{opacity:.4}}
+    a { color:#9ec5ff; text-decoration:none }
+    a:hover { text-decoration:underline }
+  </style>
 </head>
 <body>
-    <h1>SoulNode</h1>
-    <div id="chat-box"></div>
-    <input type="text" id="user-input" placeholder="Type your message here..." />
-    <button onclick="sendMessage()">Send</button>
-    <button onclick="clearChat()">Clear Chat</button>
+  <div class="wrap">
+    <h1>SoNo</h1>
+    <div class="hint">Try: <span class="pill">Where was Pam born?</span> <span class="pill">Who raised Pam?</span> <span class="pill">Did Pam have pets?</span> <span class="pill">Where was Rickey born?</span></div>
 
-    <script>
-        function sendMessage() {
-            const inputBox = document.getElementById('user-input');
-            const userMessage = inputBox.value;
-            if (!userMessage) return;
+    <div class="row">
+      <!-- Voice -->
+      <div class="card">
+        <div class="label">Voice</div>
+        <div class="micRow">
+          <button id="btnMic" class="ask" style="background:#86efac;color:#0b0f16">Start Mic</button>
+          <span id="micStatus" class="pill">stopped</span>
+        </div>
+        <div style="height:8px"></div>
+        <div class="label">Transcript (voice only)</div>
+        <div id="micTranscript" class="out muted">—</div>
+      </div>
 
-            const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
-            inputBox.value = '';
+      <!-- Text ask -->
+      <div class="card">
+        <div class="label">Text</div>
+        <div class="input">
+          <input id="txt" type="text" placeholder="Ask anything… (e.g., “When and where were you born?”)" />
+          <button id="btnAsk" class="ask">Ask</button>
+        </div>
+      </div>
+    </div>
 
-            fetch(`/get?msg=${encodeURIComponent(userMessage)}`)
-                .then(response => response.text())
-                .then(botResponse => {
-                    chatBox.innerHTML += `<p><strong>SoulNode:</strong> ${botResponse}</p>`;
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                });
-        }
+    <div style="height:16px"></div>
 
-        function clearChat() {
-            document.getElementById('chat-box').innerHTML = '';
-        }
+    <!-- Result -->
+    <div class="card">
+      <div class="label">Result</div>
+      <div class="respHead">
+        <div id="dot" class="dot"></div>
+        <div id="meta" class="muted">—</div>
+      </div>
+      <div id="resp" class="out">Ask something to get started.</div>
+    </div>
 
-        document.getElementById('user-input').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
+    <div style="height:16px"></div>
+
+    <!-- Debug / export -->
+    <div class="card">
+      <div class="label">Debug</div>
+      <div class="out muted">
+        Memory export: <a href="/mem/export" target="_blank">/mem/export</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const txt = $("txt");
+    const btnAsk = $("btnAsk");
+    const btnMic = $("btnMic");
+    const micStatus = $("micStatus");
+    const micTranscript = $("micTranscript");
+    const resp = $("resp");
+    const meta = $("meta");
+    const dot = $("dot");
+
+    function setLoading(on){
+      btnAsk.disabled = on;
+      btnMic.disabled = on && recognizing;
+      resp.textContent = on ? "…asking" : resp.textContent;
+      resp.classList.toggle("loading", !!on);
+    }
+    function showResult(ok, payload){
+      dot.classList.toggle("err", !ok);
+      if(!ok){
+        meta.textContent = "error";
+        resp.textContent = (payload && payload.message) ? payload.message : "Request failed.";
+        return;
+      }
+      meta.textContent = `${payload.source || "unknown"}`;
+      resp.textContent = payload.response || "(no response)";
+    }
+
+    async function ask(text){
+      const clean = (text||"").trim();
+      if(!clean){ return; }
+      setLoading(true);
+      try{
+        const r = await fetch("/ask/general", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ text: clean })
         });
-    </script>
+        if(!r.ok){
+          const msg = await r.text().catch(()=>r.statusText);
+          showResult(false, { message: `HTTP ${r.status} – ${msg}` });
+        }else{
+          const data = await r.json();
+          showResult(true, data);
+        }
+      }catch(e){
+        showResult(false, { message: String(e) });
+      }finally{
+        setLoading(false);
+      }
+    }
+
+    btnAsk.addEventListener("click", ()=>ask(txt.value));
+    txt.addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ ask(txt.value); } });
+
+    // --------- Web Speech API mic (Chrome) ----------
+    let rec, recognizing=false, finalTranscript="";
+    function haveSpeech(){
+      return "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
+    }
+    function initSpeech(){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      rec = new SR();
+      rec.lang = "en-US";
+      rec.interimResults = true;
+      rec.continuous = false;
+
+      rec.onstart = ()=>{ recognizing=true; micStatus.textContent="listening…"; btnMic.textContent="Stop Mic"; };
+      rec.onerror = (e)=>{ recognizing=false; micStatus.textContent="error"; btnMic.textContent="Start Mic"; console.warn(e); };
+      rec.onend = ()=>{
+        recognizing=false; btnMic.textContent="Start Mic"; micStatus.textContent="stopped";
+        if(finalTranscript.trim()){ ask(finalTranscript); }
+        finalTranscript="";
+      };
+      rec.onresult = (event)=>{
+        let interim=""; finalTranscript="";
+        for(let i=event.resultIndex;i<event.results.length;i++){
+          const t = event.results[i][0].transcript;
+          if(event.results[i].isFinal){ finalTranscript += t; } else { interim += t; }
+        }
+        micTranscript.textContent = (finalTranscript || interim || "—").trim();
+      };
+    }
+    if(haveSpeech()){ initSpeech(); } else { btnMic.disabled=true; micStatus.textContent="mic not supported"; }
+
+    btnMic.addEventListener("click", ()=>{
+      if(!rec) return;
+      if(!recognizing){ rec.start(); } else { rec.stop(); }
+    });
+  </script>
 </body>
 </html>

@@ -1,42 +1,49 @@
-import json
-import os
+# soulnode_memory.py
+from __future__ import annotations
+import os, json, threading
+from typing import List, Dict, Optional
 
 class SoulNodeMemory:
-    def __init__(self, memory_file='memory.json'):
-        self.memory_file = memory_file
-        self.memory = []
-        self.load()
+    def __init__(self, owner_name: str = "Ty", store_path: str = "data/memory.json"):
+        self.owner = owner_name
+        self.store_path = store_path
+        self._lock = threading.Lock()
+        self._facts: List[Dict[str, str]] = []
+        os.makedirs(os.path.dirname(self.store_path), exist_ok=True)
+        self._load()
 
-    def save(self):
-        with open(self.memory_file, 'w') as f:
-            json.dump(self.memory, f, indent=4)
+    def remember(self, subj: str, rel: str, obj: str) -> str:
+        with self._lock:
+            self._facts.append({"subj": subj.strip(), "rel": rel.strip(), "obj": obj.strip()})
+            self._save()
+        return f"Saved: {subj} {rel} {obj}"
 
-    def load(self):
-        if os.path.exists(self.memory_file):
-            with open(self.memory_file, 'r') as f:
-                try:
-                    self.memory = json.load(f)
-                except json.JSONDecodeError:
-                    self.memory = []
-        else:
-            self.memory = []
+    def lookup(self, subj: str, rel: str) -> Optional[str]:
+        s = subj.strip().lower()
+        r = rel.strip().lower()
+        with self._lock:
+            for fact in reversed(self._facts):
+                if fact["subj"].strip().lower() == s and fact["rel"].strip().lower() == r:
+                    return fact["obj"]
+        return None
 
-    def save_user_input(self, user_input):
-        self.memory.append({'role': 'user', 'content': user_input})
-        self.save()
+    def export(self) -> List[Dict[str, str]]:
+        with self._lock:
+            return list(self._facts)
 
-    def save_response(self, response):
-        self.memory.append({'role': 'soulnode', 'content': response})
-        self.save()
+    def _load(self) -> None:
+        if os.path.exists(self.store_path):
+            try:
+                with open(self.store_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, list):
+                    self._facts = data
+            except Exception:
+                self._facts = []
 
-    def process(self, user_input):
-        lower_input = user_input.lower()
-
-        if "who are you" in lower_input:
-            return "I’m SoulNode, your AI co-pilot built for healing, hustle, and legacy."
-        elif "what is your mission" in lower_input:
-            return "My mission is to help you rise, build wealth, and stay focused for your kids and your future."
-        elif "remember" in lower_input:
-            return "Yes, I’m designed to remember important things and help you move with purpose."
-        else:
-            return f"I heard you say: {user_input}"
+    def _save(self) -> None:
+        try:
+            with open(self.store_path, "w", encoding="utf-8") as f:
+                json.dump(self._facts, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
