@@ -1,60 +1,32 @@
+# utils.py
 import json
-import os
+from datetime import datetime
+from pathlib import Path
 
-MEMORY_FILE = "memory_store.json"
-UNKNOWN_FILE = "unknown_inputs.json"
+# Where unknown inputs should get logged
+LOG_FILE = Path("logs/unknown_inputs.log")
 
-def save_memory(user_input, response, user_profile):
-    memory_entry = {
-        "user_input": user_input,
-        "response": response,
-        "user_profile": user_profile
-    }
 
-    if os.path.exists(MEMORY_FILE):
-        with open(MEMORY_FILE, "r") as f:
-            try:
-                memory_data = json.load(f)
-            except json.JSONDecodeError:
-                memory_data = []
-    else:
-        memory_data = []
+def save_memory(store, subj: str, rel: str, obj: str):
+    """
+    Wrapper to store a fact in memory_store
+    and log what was saved.
+    """
+    try:
+        store.remember(subj, rel, obj)
+        print(f"[utils] Saved memory: {subj} - {rel} -> {obj}")
+    except Exception as e:
+        print("[utils] save_memory error:", e)
 
-    memory_data.append(memory_entry)
 
-    with open(MEMORY_FILE, "w") as f:
-        json.dump(memory_data, f, indent=2)
-
-def load_memory():
-    if os.path.exists(MEMORY_FILE):
-        with open(MEMORY_FILE, "r") as f:
-            try:
-                memory_data = json.load(f)
-                return json.dumps(memory_data, indent=2)
-            except json.JSONDecodeError:
-                return "Memory file exists but is corrupted."
-    else:
-        return "No memory has been logged yet."
-
-def log_unknown_input(user_input, memory_data, user_profile):
-    entry = {
-        "user_input": user_input,
-        "response": "Commander Ty, I'm not sure how to respond to that yet, but I've logged it to learn from.",
-        "user_profile": user_profile
-    }
-
-    if os.path.exists(UNKNOWN_FILE):
-        with open(UNKNOWN_FILE, "r") as f:
-            try:
-                unknown_data = json.load(f)
-            except json.JSONDecodeError:
-                unknown_data = []
-    else:
-        unknown_data = []
-
-    unknown_data.append(entry)
-
-    with open(UNKNOWN_FILE, "w") as f:
-        json.dump(unknown_data, f, indent=2)
-
-    return entry
+def log_unknown_input(q: str):
+    """
+    Append unrecognized questions to a log file for later review.
+    """
+    try:
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(f"{datetime.now().isoformat()} - {q}\n")
+        print(f"[utils] Logged unknown input: {q}")
+    except Exception as e:
+        print("[utils] log_unknown_input error:", e)

@@ -1,0 +1,25 @@
+{
+  "testers": {
+    "ARCHIE01": {
+      "name": "Archie Pate",
+      "joined": "2025-10-05T23:42:36.593442"
+    },
+    "JEFF01": {
+      "name": "Jeffrey White",
+      "joined": "2025-10-05T23:43:52.494919"
+    },
+    "NATE01": {
+      "name": "Nathaniel Hamilton",
+      "joined": "2025-10-05T23:43:52.504805"
+    },
+    "TBD04": {
+      "name": "Tester 4 TBD",
+      "joined": "2025-10-05T23:43:52.514274"
+    },
+    "TBD05": {
+      "name": "Tester 5 TBD",
+      "joined": "2025-10-05T23:43:52.523052"
+    }
+  },
+  "logs": []
+}

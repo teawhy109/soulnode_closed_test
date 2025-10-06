@@ -1,176 +1,194 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>SoNo – Memory Test UI</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>SoulNode AI Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    :root { --bg:#0b0f16; --panel:#121827; --text:#e9eef7; --muted:#9fb0c7; --accent:#ffd54a; }
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
-    .wrap{max-width:980px;margin:40px auto;padding:0 16px}
-    h1{font-weight:800;font-size:28px;margin:0 0 6px}
-    .hint{color:var(--muted);font-size:14px;margin-bottom:18px}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    @media (max-width:860px){ .row{grid-template-columns:1fr} }
-    .card{background:var(--panel);border:1px solid #1f2940;border-radius:14px;padding:14px 16px}
-    .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-    .input{display:flex;gap:8px}
-    input[type="text"]{flex:1;padding:12px 12px;border-radius:10px;border:1px solid #24314e;background:#0e1422;color:var(--text);font-size:15px}
-    button.ask{padding:12px 16px;border-radius:10px;border:0;background:var(--accent);color:#111;font-weight:700;cursor:pointer}
-    button.ask[disabled]{opacity:.6;cursor:not-allowed}
-    .micRow{display:flex;gap:8px;align-items:center;margin-top:8px}
-    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#0e1422;border:1px solid #24314e;color:var(--muted);font-size:12px}
-    .out{white-space:pre-wrap;word-break:break-word;line-height:1.5}
-    .muted{color:var(--muted)}
-    .respHead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-    .dot{width:8px;height:8px;border-radius:999px;background:#6ee7b7}
-    .dot.err{background:#f87171}
-    .loading{animation:pulse 1.1s infinite}
-    @keyframes pulse{0%{opacity:.4}50%{opacity:1}100%{opacity:.4}}
-    a { color:#9ec5ff; text-decoration:none }
-    a:hover { text-decoration:underline }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f7f8fa;
+      color: #222;
+    }
+    h1 { color: #333; }
+    #container {
+      display: flex;
+      gap: 30px;
+    }
+    #left-panel {
+      flex: 1;
+    }
+    #memory-panel {
+      width: 30%;
+      background: #fff;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      overflow-y: auto;
+      max-height: 80vh;
+    }
+    input[type="text"] {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 15px;
+      font-size: 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #0078d7;
+      color: white;
+      margin-left: 5px;
+    }
+    button:hover { background: #005fa3; }
+    #response {
+      margin-top: 20px;
+      font-size: 18px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>SoNo</h1>
-    <div class="hint">Try: <span class="pill">Where was Pam born?</span> <span class="pill">Who raised Pam?</span> <span class="pill">Did Pam have pets?</span> <span class="pill">Where was Rickey born?</span></div>
-
-    <div class="row">
-      <!-- Voice -->
-      <div class="card">
-        <div class="label">Voice</div>
-        <div class="micRow">
-          <button id="btnMic" class="ask" style="background:#86efac;color:#0b0f16">Start Mic</button>
-          <span id="micStatus" class="pill">stopped</span>
-        </div>
-        <div style="height:8px"></div>
-        <div class="label">Transcript (voice only)</div>
-        <div id="micTranscript" class="out muted">—</div>
+  <h1>🧠 SoulNode Assistant</h1>
+  <div id="container">
+    <div id="left-panel">
+      <div>
+        <input type="text" id="question" placeholder="Ask about Pam or Ty..." />
+        <button id="send-btn">Send</button>
+        <button id="mic-btn">🎤</button>
+        <label>
+          <input type="checkbox" id="voice-toggle" />
+          Voice
+        </label>
       </div>
 
-      <!-- Text ask -->
-      <div class="card">
-        <div class="label">Text</div>
-        <div class="input">
-          <input id="txt" type="text" placeholder="Ask anything… (e.g., “When and where were you born?”)" />
-          <button id="btnAsk" class="ask">Ask</button>
-        </div>
+      <div id="response">Ask something to begin.</div>
+
+      <div style="margin-top:20px;">
+        <button id="add-fact-btn">Add Fact</button>
+        <button id="clear-memory-btn">Clear Memory</button>
       </div>
     </div>
 
-    <div style="height:16px"></div>
-
-    <!-- Result -->
-    <div class="card">
-      <div class="label">Result</div>
-      <div class="respHead">
-        <div id="dot" class="dot"></div>
-        <div id="meta" class="muted">—</div>
-      </div>
-      <div id="resp" class="out">Ask something to get started.</div>
-    </div>
-
-    <div style="height:16px"></div>
-
-    <!-- Debug / export -->
-    <div class="card">
-      <div class="label">Debug</div>
-      <div class="out muted">
-        Memory export: <a href="/mem/export" target="_blank">/mem/export</a>
-      </div>
+    <div id="memory-panel">
+      <h3>🧩 Memory Entries</h3>
+      <pre id="memory-display">(loading...)</pre>
     </div>
   </div>
 
   <script>
-    const $ = (id)=>document.getElementById(id);
-    const txt = $("txt");
-    const btnAsk = $("btnAsk");
-    const btnMic = $("btnMic");
-    const micStatus = $("micStatus");
-    const micTranscript = $("micTranscript");
-    const resp = $("resp");
-    const meta = $("meta");
-    const dot = $("dot");
-
-    function setLoading(on){
-      btnAsk.disabled = on;
-      btnMic.disabled = on && recognizing;
-      resp.textContent = on ? "…asking" : resp.textContent;
-      resp.classList.toggle("loading", !!on);
+    async function refreshMemory() {
+      const res = await fetch('/mem/export');
+      const data = await res.json();
+      document.getElementById('memory-display').textContent = JSON.stringify(data.memory, null, 2);
     }
-    function showResult(ok, payload){
-      dot.classList.toggle("err", !ok);
-      if(!ok){
-        meta.textContent = "error";
-        resp.textContent = (payload && payload.message) ? payload.message : "Request failed.";
-        return;
+
+    async function askQuestion(text) {
+      const res = await fetch('/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      const responseBox = document.getElementById('response');
+      responseBox.textContent = data.answer || data.error;
+
+      // Handle mic input
+      let recognizing = false;
+      let recognition;
+      if ('webkitSpeechRecognition' in window) {
+  
       }
-      meta.textContent = `${payload.source || "unknown"}`;
-      resp.textContent = payload.response || "(no response)";
-    }
 
-    async function ask(text){
-      const clean = (text||"").trim();
-      if(!clean){ return; }
-      setLoading(true);
-      try{
-        const r = await fetch("/ask/general", {
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ text: clean })
+
+      // Speak answer if voice toggle is on
+      const voiceEnabled = document.getElementById('voice-toggle').checked;
+      if (voiceEnabled && data.answer) {
+        const ttsRes = await fetch('/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: data.answer })
         });
-        if(!r.ok){
-          const msg = await r.text().catch(()=>r.statusText);
-          showResult(false, { message: `HTTP ${r.status} – ${msg}` });
-        }else{
-          const data = await r.json();
-          showResult(true, data);
-        }
-      }catch(e){
-        showResult(false, { message: String(e) });
-      }finally{
-        setLoading(false);
+        const blob = await ttsRes.blob();
+        const url = URL.createObjectURL(blob);
+        new Audio(url).play();
       }
     }
 
-    btnAsk.addEventListener("click", ()=>ask(txt.value));
-    txt.addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ ask(txt.value); } });
-
-    // --------- Web Speech API mic (Chrome) ----------
-    let rec, recognizing=false, finalTranscript="";
-    function haveSpeech(){
-      return "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
-    }
-    function initSpeech(){
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      rec = new SR();
-      rec.lang = "en-US";
-      rec.interimResults = true;
-      rec.continuous = false;
-
-      rec.onstart = ()=>{ recognizing=true; micStatus.textContent="listening…"; btnMic.textContent="Stop Mic"; };
-      rec.onerror = (e)=>{ recognizing=false; micStatus.textContent="error"; btnMic.textContent="Start Mic"; console.warn(e); };
-      rec.onend = ()=>{
-        recognizing=false; btnMic.textContent="Start Mic"; micStatus.textContent="stopped";
-        if(finalTranscript.trim()){ ask(finalTranscript); }
-        finalTranscript="";
-      };
-      rec.onresult = (event)=>{
-        let interim=""; finalTranscript="";
-        for(let i=event.resultIndex;i<event.results.length;i++){
-          const t = event.results[i][0].transcript;
-          if(event.results[i].isFinal){ finalTranscript += t; } else { interim += t; }
-        }
-        micTranscript.textContent = (finalTranscript || interim || "—").trim();
-      };
-    }
-    if(haveSpeech()){ initSpeech(); } else { btnMic.disabled=true; micStatus.textContent="mic not supported"; }
-
-    btnMic.addEventListener("click", ()=>{
-      if(!rec) return;
-      if(!recognizing){ rec.start(); } else { rec.stop(); }
+    // Handle send button
+    document.getElementById('send-btn').addEventListener('click', async () => {
+      const text = document.getElementById('question').value;
+      if (text.trim() !== "") await askQuestion(text);
     });
+
+    // Handle mic input
+    let recognizing = false;
+    let recognition;
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onresult = async (event) => {
+        const text = event.results[0][0].transcript;
+        document.getElementById('question').value = text;
+        await askQuestion(text);
+      };
+
+      recognition.onend = () => { recognizing = false; };
+
+      document.getElementById('mic-btn').addEventListener('click', () => {
+        if (recognizing) {
+          recognition.stop();
+        } else {
+          recognition.start();
+          recognizing = true;
+        }
+      });
+    } else {
+      console.warn("Speech recognition not supported in this browser.");
+    }
+
+    // Add fact button
+    document.getElementById('add-fact-btn').addEventListener('click', async () => {
+      const subj = prompt("Subject (e.g., pam, ty):");
+      const rel = prompt("Relation (e.g., full name, goal):");
+      const val = prompt("Value:");
+      if (!subj || !rel || !val) return;
+      await fetch('/remember', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: subj, relation: rel, value: val })
+      });
+      await refreshMemory();
+    });
+
+    
+
+    // Clear memory button
+    document.getElementById('clear-memory-btn').addEventListener('click', async () => {
+      if (confirm("Clear all memory?")) {
+        await fetch('/mem/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memory: {} })
+        });
+        await refreshMemory();
+      }
+    });
+
+    refreshMemory();
+
+    
   </script>
 </body>
 </html>

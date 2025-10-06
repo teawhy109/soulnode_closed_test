@@ -1,2100 +1,1452 @@
-# app.py — SoNo server (relaxed Q&A + aliases + multi-word relations + PETS FIX)
-# Fixes:
-# - Recognizes possessive-only questions like "Pam's birthday", "Pam's favorite restaurants"
-# - Queries memory using lowercase subject/rel variants to match your stored keys
-# - Keeps pets consolidation and everything else you had working
+# app.py — SoNo (solid build: identity-first, natural teach/recall, pam preload, GPT fallback)
+# -------------------------------------------------------------------------------------------
+# What this server does (stable order):
+# 1) Identity answers (NEVER GPT)
+# 2) Teach via commands + natural statements (stores into MemoryStore)
+# 3) Memory-first recall (pronouns + fuzzy relations)
+# 4) Pam retrieval/summary from pam facts (if mentioned)
+# 5) GPT fallback (guarded not to contradict identity/memory)
+# 6) Persistence: loads from memory_store.json, pam_facts_flat.json, pam_facts_flat.json
+# 7) Routes: /, /ask (POST + GET hint), /mem/export, /mem/import, /healthz, /tests/smoke
+# -------------------------------------------------------------------------------------------
 
-# app.py (top imports section)
-import os
-from profiles import profile_answer, load_profiles
-from dotenv import load_dotenv
-load_dotenv() # reads .env if present
+from __future__ import annotations
+
+import os, re, json, time
 from pathlib import Path
-from profiles import load_profiles, profile_answer
-from pathlib import Path
-from ingest_pam import load_pam_pairs, qa_answer
-
-from openai import OpenAI
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY) # <-- new SDK init (no OpenAI.api_key assignment)
-
-from flask import Flask, request, jsonify, render_template
-from intent import parse_intent
+from typing import Optional, Dict, Any, Tuple, List
+from difflib import SequenceMatcher
+from collections import deque, Counter
 from memory_store import MemoryStore
-import re, json, logging, requests
-from functools import lru_cache
-from typing import Optional, Tuple, Any
-
-app = Flask(__name__)
-store = MemoryStore()
-
-# map a few common phrasings directly to (subject, relation)
-_QA_PATTERNS = [
-    (re.compile(r"who\s+is\s+ty'?s\s+(mom|mother)\b", re.I), ("ty", "mom")),
-    (re.compile(r"what('?s| is)\s+pam'?s\s+full\s+name\b", re.I), ("pam", "full name")),
-    (re.compile(r"where\s+was\s+pam\s+(raised|from)\b", re.I), ("pam", "hometown")),
-    (re.compile(r"where\s+did\s+pam\s+grow\s+up\b", re.I), ("pam", "hometown")),
-    (re.compile(r"where\s+was\s+pam\s+born\b", re.I), ("pam", "birthplace")),
-]
-
-def quick_qna_route(txt: str):
-    for rx, pair in _QA_PATTERNS:
-        if rx.search(txt):
-            return pair
-    return (None, None)
-
-# load pam Q/A (data/pam.txt) once
-PAM_QA = load_pam_pairs(Path("data/pam.txt"))
+from flask import Flask, request, jsonify, send_file
+from datetime import datetime
+import json
 
 
 
-# load mom profile once on startup
-PROFILES = load_profiles(Path("data"))
 
-# --- Identity hook (SoNo speaks for himself, not GPT) ---
-IDENTITY = {
-    "name": "SoNo",
-    "creators": "Ty Butler and New Chapter Media Group",
-    "mission": "to be a calm, helpful companion for Pam—listening, remembering, and giving clear answers."
+from dotenv import load_dotenv
+load_dotenv()
+
+from flask import Flask, request, jsonify, render_template, make_response, Response
+
+memory = MemoryStore()
+MODE = "closed_test"
+
+# --------------------------------------------------------
+# Closed Test Operations Logger + Decorator
+# (must appear before any @track_activity(...) usage)
+# --------------------------------------------------------
+import threading
+from datetime import datetime
+
+ACTIVITY_LOG_FILE = "test_activity_log.json"
+_activity_lock = threading.Lock()
+
+def _append_json_list(path: str, entry: dict):
+    """Append an entry to a JSON list file (thread-safe)."""
+    try:
+        with _activity_lock:
+            data = []
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f) or []
+                    except Exception:
+                        data = []
+            data.append(entry)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"[ActivityLogError] {e}")
+
+def log_activity(tester: str, route: str, status: str = "success", note: str = ""):
+    """Log a single activity event."""
+    entry = {
+        "tester": tester or "unknown",
+        "route": route,
+        "status": status,
+        "note": note,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    _append_json_list(ACTIVITY_LOG_FILE, entry)
+
+def track_activity(route_name: str):
+    """Decorator to log activity for a route."""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            who = "unknown"
+            try:
+                if request.is_json:
+                    payload = request.get_json(silent=True) or {}
+                    # prefer explicit tester key/name if present
+                    who = payload.get("key") or payload.get("tester") or "unknown"
+                else:
+                    who = request.args.get("tester", "unknown")
+            except Exception:
+                who = "unknown"
+
+            resp = func(*args, **kwargs)
+            try:
+                log_activity(who, route_name, "success")
+            except Exception as e:
+                print(f"[track_activity] log failed: {e}")
+            return resp
+        wrapper.__name__ = func.__name__  # keep Flask endpoint name stable
+        return wrapper
+    return decorator
+
+
+
+# --------------------------------------------------------
+# Auto Memory Sanitization on Startup
+# --------------------------------------------------------
+try:
+    print("[Startup] Running automatic memory sweep...")
+    memory.sanitize_all()
+    print("[Startup] ✅ Memory successfully sanitized at launch.")
+except Exception as e:
+    print(f"[Startup] ⚠️ Auto-sweep failed: {e}")
+
+
+
+# ------------------ AUTO-INTENT + TONE DETECTION ------------------
+import re
+
+def detect_emotion_and_tone(text: str) -> str:
+    """
+    Lightweight tone + intent detector for SoulNode.
+    Analyzes user phrasing and keywords to classify the emotional tone or intent.
+    Returns one of: 'cheeky', 'motivational', 'reflective', 'legacy', 'focus', or None.
+    """
+    if not text:
+        return None
+
+    t = text.lower().strip()
+
+    # Cheeky / playful language
+    if any(x in t for x in ["haha", "lol", "you thought", "funny", "😂", "🤣"]):
+        return "cheeky"
+
+    # Motivational intent
+    if any(x in t for x in ["let's go", "we got this", "i can do this", "stay focused", "rise", "push through"]):
+        return "motivational"
+
+    # Reflective / introspective phrasing
+    if any(x in t for x in ["i feel", "sometimes", "i've been thinking", "why does", "it hurts", "reflecting"]):
+        return "reflective"
+
+    # Legacy / family / purpose tone
+    if any(x in t for x in ["my kids", "my legacy", "for my mom", "for my family", "future", "generation", "purpose"]):
+        return "legacy"
+
+    # Focus / discipline tone
+    if any(x in t for x in ["stay sharp", "focus", "locked in", "no distractions", "grind mode", "beast mode"]):
+        return "focus"
+
+    # If none matched, return None
+    return None
+# ------------------------------------------------------------------
+
+
+
+# ---------------- SoulNode Identity Preload ----------------
+try:
+    preload_data = {
+        "name": "SoulNode",
+        "creator": "Ty Butler",
+        "mission": "To learn, heal, and help build New Chapter Media’s legacy.",
+        "origin": "New Chapter Media Group",
+        "type": "AI co-pilot"
 }
 
-def identity_answer(text: str) -> str | None:
-    t = (text or "").lower()
-    if "who are you" in t or "what are you" in t:
-        return f"I'm {IDENTITY['name']}, created by {IDENTITY['creators']}. {IDENTITY['mission']}"
-    if "your name" in t or "what is your name" in t or "what's your name" in t:
-        return f"My name is {IDENTITY['name']}."
-    if "who created you" in t or "who made you" in t:
-        return f"I was created by {IDENTITY['creators']}."
-    if "your mission" in t or "what is your mission" in t or "what's your mission" in t:
-        return f"My mission is {IDENTITY['mission']}."
-    return None
+    # Prevent redundant memory saves during preload
+    for key, val in preload_data.items():
+        if not memory.memory.get("solnode", {}).get(key):
+            memory.remember("solnode", key, val, silent=True)
 
-# Load profiles into memory on startup
-for path in ["data/mom_profile.json", "data/sono_profile.json"]:
+    print("[Identity] ✅ SoulNode identity preloaded into memory (clean mode)")
+
+
+except Exception as e:
+    print(f"[Identity] ⚠️ Failed to preload SoulNode identity: {e}")
+
+
+
+
+
+
+# ---- PAM relation resolver + memory answer helper ---------------------------
+import re
+from typing import Dict, List, Optional
+
+REL_ALIASES: Dict[str, str] = {
+    # names / identity
+    "full name": "full_name", "fullname": "full_name", "name": "full_name",
+    "who is pam": "identity", "who are you": "identity", "creator": "identity",
+    "mission": "identity",
+    # places
+    "birthplace": "birthplace", "born": "birthplace", "hometown": "birthplace",
+    "where from": "birthplace", "where is she from": "birthplace",
+    # family
+    "mother": "mother", "father": "father", "parents": "parents",
+    "brother": "siblings", "sister": "siblings", "siblings": "siblings",
+    "kids": "children", "children": "children", "grandkids": "grandchildren",
+    # pets
+    "pet": "pets", "pets": "pets", "dog": "pets", "breed": "pets", "yasha": "pets",
+    # school / work
+    "school": "schools", "schools": "schools", "education": "schools",
+    "job": "occupation", "work": "occupation", "first job": "occupation",
+    # misc buckets from your dataset
+    "values": "values", "health": "health", "prayer": "prayer warriors",
+    "restaurants": "restaurants", "meals": "meals", "tradition": "tradition",
+    "style": "style", "music": "music",
+}
+
+def _norm(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
+
+def _resolve_relation(question: str) -> str:
+    t = _norm(question)
+    # High-signal keywords first
+    if "full name" in t or ("name" in t and "pam" in t):
+        return "full_name"
+    if any(k in t for k in ["yasha", "breed", "dog", "pet", "pets"]):
+        return "pets"
+    if any(k in t for k in ["hometown", "born", "birthplace", "where from"]):
+        return "birthplace"
+
+    # Alias table fallback: pick the first alias that appears
+    for key, rel in REL_ALIASES.items():
+        if key in t:
+            return rel
+
+    # Last resort
+    return "fact"
+
+def answer_from_pam_memory(question: str, store) -> Optional[dict]:
+    """
+    Ask MemoryStore for the best value given the resolved relation.
+    `store` is your MemoryStore instance used elsewhere in app.py.
+    Returns a response dict or None if no match.
+    """
+    rel = _resolve_relation(question)
+    # MemoryStore may expose different getters; support both common shapes:
+
+    # Option A: nested dict store[subject][relation] -> [values...]
     try:
-        prof = load_profile(path)
-        if prof:
-            for rel, val in prof["facts"].items():
-                store.remember(prof["subject"], rel, val)
-    except Exception as e:
-        print(f"Profile load failed for {path}: {e}")
-
-# ---- Preload Mom Profile into MemoryStore at startup ----
-import os, json
-
-def _preload_mom_profile():
-    try:
-        base = os.path.dirname(__file__)
-        path = os.path.join(base, "data", "mom_profile.json")
-        if not os.path.exists(path):
-            print("PRELOAD → data/mom_profile.json not found; skipping.")
-            return
-
-        with open(path, "r", encoding="utf-8") as f:
-            prof = json.load(f)
-
-        # Expecting keys like:
-        # { "subject":"pam", "aliases":["pam","mom","mother"], "facts": { "full name":"Pamlea Butler", ... } }
-        sub = (prof.get("subject") or "pam").strip().lower()
-        facts = prof.get("facts") or {}
-
-        # Load all facts into persistent memory
-        for rel, obj in facts.items():
-            try:
-                store.remember(sub, rel, obj)
-            except Exception as e:
-                print(f"PRELOAD WARN → couldn’t remember {sub}|{rel}: {e}")
-
-        print(f"PRELOAD → Loaded {len(facts)} mom facts into memory for subject '{sub}'.")
-    except Exception as e:
-        print(f"PRELOAD ERROR → {e}")
-
-# Run once at startup
-_preload_mom_profile()
-
-# ---- Pam context helpers (reads data/pam.txt and pulls a few relevant lines) ----
-import pathlib
-_PAM_PATH = pathlib.Path("data/pam.txt")
-_PAM_TEXT_CACHE = None
-
-def _is_pam_query(text: str) -> bool:
-    t = (text or "").lower()
-    return any(k in t for k in ["pam", "ty's mom", "ty’s mom", "tys mom", "mother", "mom"])
-
-def _load_pam_text() -> str:
-    global _PAM_TEXT_CACHE
-    if _PAM_TEXT_CACHE is None:
-        try:
-            _PAM_TEXT_CACHE = _PAM_PATH.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
-            _PAM_TEXT_CACHE = ""
-    return _PAM_TEXT_CACHE
-
-def _find_support(query: str, k: int = 6) -> str:
-    text = _load_pam_text()
-    if not text:
-        return ""
-    q = query.lower()
-    keys = [w for w in q.replace("?", " ").split() if len(w) > 2]
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    scored = []
-    for i, ln in enumerate(lines):
-        ln_l = ln.lower()
-        s = sum(1 for w in keys if w in ln_l)
-        # very light bias if user mentions pam/mom and the line contains pam
-        if ("pam" in q or "mom" in q) and ("pam" in ln_l):
-            s += 1
-        if s:
-            scored.append((s, i, ln))
-    scored.sort(reverse=True)
-    return "\n".join(ln for _, __, ln in scored[:k])
-
-# --- Seed memory from mom_profile.json at boot ---
-def _seed_profile_into_memory(path: str):
-    import json, os
-    try:
-        if not os.path.isfile(path):
-            return
-        with open(path, "r", encoding="utf-8") as f:
-            prof = json.load(f)
-        sub = prof.get("subject", "").strip().lower()
-        facts = (prof.get("facts") or {}) if isinstance(prof.get("facts"), dict) else {}
-        if not sub or not facts:
-            return
-        # write each fact into MemoryStore, keys normalized to lowercase
-        for k, v in facts.items():
-            if not k:
-                continue
-            rel = str(k).strip().lower()
-            val = str(v).strip()
-            if val:
-                store.remember(sub, rel, val)
+        vals = store.get("pam", rel) # if you implemented get(subject, relation)
+        if isinstance(vals, list) and vals:
+            vals = sorted(vals, key=len, reverse=True) # prefer fuller answer
+            return {"ok": True, "response": vals[0], "source": "pam_facts_flat.json"}
+        if isinstance(vals, str) and vals:
+            return {"ok": True, "response": vals, "source": "pam_facts_flat.json"}
     except Exception:
-        # never crash boot on profile issues
         pass
 
-_seed_profile_into_memory(os.path.join("data", "mom_profile.json"))
-
-# ---- Helpers & guards (must exist before handle_user_text) ----
-import time as _time
-from collections import defaultdict
-
-# simple per-IP context for follow-up teaches ("it's X")
-_LAST_Q = {} # ip -> {"sub": str, "rel": str}
-def get_last_context(ip: str):
-    return _LAST_Q.get(ip)
-
-def set_last_context(ip: str, sub: str | None, rel: str | None):
-    if sub and rel:
-        _LAST_Q[ip] = {"sub": sub, "rel": rel}
-    else:
-        _LAST_Q.pop(ip, None)
-
-# light input sanitizer to block obvious script/HTML injection
-_DANGEROUS_PAT = re.compile(r"<\s*script|</\s*script|on\w+\s*=", re.I)
-def _looks_dangerous(text: str) -> bool:
-    return bool(_DANGEROUS_PAT.search(text or ""))
-
-    def _heuristic_ask(t: str):
-          import re as _re
-    u = _re.sub(r"[^a-z0-9' ]+", " ", t.lower()).strip()
-
-    # who is/ who's X's mom|mother|dad|father
-    m = _re.match(r"(who\s+is|who's)\s+([a-z0-9]+)('?s)?\s+(mom|mother|dad|father)\b", u)
-    if m:
-        s = m.group(2)
-        r = m.group(4)
-        if r == "mother":
-            r = "mom"
-        if r == "father":
-            r = "dad"
-        return s, r
-
-    # what's / what is X's favorite <something>
-    m = _re.match(r"(what\s+is|what's)\s+([a-z0-9]+)('?s)?\s+(fav|favorite)\s+([a-z ]+)$", u)
-    if m:
-        s = m.group(2)
-        r = f"favorite {m.group(5).strip()}"
-        return s, r
-
-    # what's / what is X's <attribute>
-    m = _re.match(r"(what\s+is|what's)\s+([a-z0-9]+)('?s)?\s+([a-z ]+)$", u)
-    if m:
-        s = m.group(2)
-        attr = m.group(4).strip()
-        replacements = {
-            "fullname": "full name",
-            "full-name": "full name",
-            "surname": "last name",
-        }
-        attr = replacements.get(attr, attr)
-        if attr in {"full name", "last name", "middle name", "hometown", "birthday", "age"}:
-            return s, attr
-
-    return None, None
-# ---- GPT bridge (must be above handle_user_text) ----
-def gpt_bridge(user_text: str, pam_context: str = "") -> tuple[bool, str]:
-    """
-    Calls OpenAI with SoNo identity. Optionally includes Pam notes to steer answers.
-    Returns (ok, reply).
-    """
+    # Option B: search API store.find(subject, relation)
     try:
-        system_base = (
-            "You are SoNo, created by Ty Butler / New Chapter Media Group. "
-            "Speak clearly and naturally. If the question references Pam (Ty's mom) "
-            "and you are given 'Pam notes', prefer those over web/pop-culture guesses."
-        )
-        messages = [{"role": "system", "content": system_base}]
-        if pam_context:
-            messages.append({"role": "system", "content": f"Pam notes:\n{pam_context}"})
-        messages.append({"role": "user", "content": user_text})
-
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.6,
-            max_tokens=400,
-            messages=messages,
-        )
-        out = resp.choices[0].message.content.strip()
-        return True, out if out else ""
-    except Exception as e:
-        return False, f"(GPT bridge error: {e.__class__.__name__})"
-
-        # --- SoNo tone wrapper: makes *all* answers sound consistent ---
-def speak_like_sono(text: str) -> str:
-    """
-    Normalizes short/clipped answers so they read like a natural SoNo reply.
-    Keeps it brief; no fluff. Works for both memory and GPT outputs.
-    """
-    t = (text or "").strip()
-
-    # If it's super short (e.g., "Pam", "navy blue"), add a clean lead-in.
-    if len(t.split()) <= 3 and len(t) <= 20:
-        # Example: "Pam" -> "Ty’s mom is Pam."
-        # Try a couple of common memory shapes:
-        lowered = t.lower()
-
-        # Heuristics for common relations we store
-        if lowered in {"pam", "mom", "mother"}:
-            return f"Ty’s mom is {t}."
-        if lowered in {"navy blue", "royal blue", "blue", "red", "green"}:
-            return f"That’s Ivy’s favorite color: {t}."
-        return f"{t}."
-
-    # If it already looks like a sentence, ensure it ends cleanly.
-    if t and t[-1] not in ".!?":
-        t += "."
-    return t
-
-# ----------------- helpers used by handle_user_text -----------------
-import re
-from flask import request
-
-# Keep a tiny per-IP context of the last ask/miss so follow-ups like "it's X" work
-LAST_HIT: dict[str, tuple[str, str]] = {} # ip -> (subject, relation)
-LAST_MISS: dict[str, tuple[str, str]] = {} # ip -> (subject, relation)
-
-def get_last_context(ip: str):
-    t = LAST_HIT.get(ip) or LAST_MISS.get(ip)
-    if not t:
-        return None
-    s, r = t
-    return {"sub": s, "rel": r}
-
-def set_last_context(ip: str, sub: str | None, rel: str | None):
-    if sub and rel:
-        LAST_HIT[ip] = (sub, rel)
-        LAST_MISS[ip] = (sub, rel)
-    else:
-        LAST_HIT.pop(ip, None)
-        LAST_MISS.pop(ip, None)
-
-# Basic input sanitizer the guards use
-_danger_pat = re.compile(r"<script|</script|on\w+\s*=|javascript:", re.IGNORECASE)
-def _looks_dangerous(s: str) -> bool:
-    return bool(_danger_pat.search(s or ""))
-# -------------------------------------------------------------------
-
-RATE_LIMIT_SECONDS = 10 # 10-second window
-ALLOWED_PER_WINDOW = 8 # only  requests allowed in that window
-
-# ====== GUARDRAILS: Rate-limit + Safety (paste as a single block) ======
-from collections import deque
-from time import time
-import ipaddress
-import re
-import html
-
-# Config
-RATE_LIMIT_WINDOW_SEC = 15 # sliding window
-RATE_LIMIT_MAX_HITS = 12 # max requests per window per IP
-MAX_TEXT_LEN = 1200 # reject bodies longer than this
-BLOCKED_PATTERNS = [
-    re.compile(r"<\s*script\b", re.I),
-    re.compile(r"data:\s*audio/|data:\s*video/|data:\s*application/", re.I),
-]
-SKIP_PATHS = {"/healthz"} # never rate-limit these
-ADMIN_PATHS = {"/memory/export", "/memory/import", "/memory/clear", "/admin/alias/subject"}
-
-# In-memory hit buckets per IP
-_HITS: dict[str, deque] = {}
-
-def _client_ip() -> str:
-    # Try common proxy headers; fall back to remote_addr
-    ip = (
-        request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-        or request.headers.get("X-Real-IP", "").strip()
-        or (request.remote_addr or "127.0.0.1")
-    )
-    # normalize/validate
-    try:
-        return str(ipaddress.ip_address(ip))
+        vals = store.find("pam", rel) # if you implemented find()
+        if isinstance(vals, list) and vals:
+            vals = sorted(vals, key=len, reverse=True)
+            return {"ok": True, "response": vals[0], "source": "pam_facts_flat.json"}
+        if isinstance(vals, str) and vals:
+            return {"ok": True, "response": vals, "source": "pam_facts_flat.json"}
     except Exception:
-        return "127.0.0.1"
-
-def _rate_limited(ip: str) -> bool:
-    now = time()
-    dq = _HITS.get(ip)
-    if dq is None:
-        dq = deque()
-        _HITS[ip] = dq
-    # evict old hits
-    cutoff = now - RATE_LIMIT_WINDOW_SEC
-    while dq and dq[0] < cutoff:
-        dq.popleft()
-    # check limit
-    if len(dq) >= RATE_LIMIT_MAX_HITS:
-        return True
-    dq.append(now)
-    return False
-
-def _unsafe_payload(txt: str) -> str | None:
-    # length
-    if len(txt) > MAX_TEXT_LEN:
-        return f"Input too long ({len(txt)} chars). Keep it under {MAX_TEXT_LEN}."
-    # binary-ish / data-URI / scripts
-    for pat in BLOCKED_PATTERNS:
-        if pat.search(txt):
-            return "Potentially unsafe content detected."
-    # null bytes or control chars (except newline/tab)
-    if any(ord(c) < 32 and c not in ("\n", "\t", "\r") for c in txt):
-        return "Control characters not allowed."
-    return None
-
-@app.before_request
-def _global_guards():
-    # Skip static and healthz
-    path = request.path or "/"
-    if path.startswith("/static/") or path in SKIP_PATHS:
-        return
-
-        # ------------------ INPUT SAFETY ------------------
-import html
-import re
-
-MAX_LEN = 1200
-DANGEROUS_PATTERNS = [
-    r"<\s*script\b", r"on\w+\s*=", r"javascript\s*:",
-    r"<\s*iframe\b", r"<\s*object\b", r"<\s*embed\b",
-]
-
-def sanitize_and_validate(raw: str):
-    # 1) Normalize whitespace
-    txt = (raw or "").strip()
-    if not txt:
-        return None, {"ok": False, "source": "guard", "error": "Type something first."}
-
-    # 2) Hard length cap
-    if len(txt) > MAX_LEN:
-        return None, {"ok": False, "source": "guard",
-                      "error": f"Input too long ({len(txt)} chars). Keep it under {MAX_LEN}."}
-
-    # 3) Basic XSS / injection guard
-    low = txt.lower()
-    for pat in DANGEROUS_PATTERNS:
-        if re.search(pat, low):
-            return None, {"ok": False, "source": "guard",
-                          "error": "Potentially dangerous input blocked."}
-
-    # 4) HTML escaping (belt & suspenders; UI still shows raw text box value)
-    safe_txt = html.escape(txt, quote=True)
-    return safe_txt, None
-# --------------------------------------------------
-
-    ip = _client_ip()
-
-    # Rate limit (skip admin if you prefer; we’ll keep it ON to be safe)
-    if _rate_limited(ip):
-        return jsonify({
-            "ok": False,
-            "error": "Too many requests. Slow down a sec.",
-            "source": "guard"
-        }), 429
-
-    # JSON/text safety checks for POSTs to our app APIs
-    if request.method == "POST" and (
-        path == "/ask/general" or path in ADMIN_PATHS
-    ):
-        try:
-            data = request.get_json(silent=True) or {}
-            text = ""
-            # /ask/general uses { "text": "..." }
-            if path == "/ask/general":
-                text = (data.get("text") or "").strip()
-            else:
-                # admin endpoints can carry JSON bodies too (keep it shallow)
-                text = json.dumps(data, ensure_ascii=False)[:MAX_TEXT_LEN+50]
-        except Exception:
-            return jsonify({"ok": False, "error": "Invalid JSON"}), 400
-
-        msg = _unsafe_payload(text)
-        if msg:
-            return jsonify({
-                "ok": False,
-                "error": msg,
-                "source": "guard"
-            }), 400
-# ====== /GUARDRAILS ======
-
-# track the last “missed” question per client so a follow-up like “it’s ___”
-# can teach the answer
-LAST_MISS: dict[str, tuple[str, str]] = {}
-LAST_HIT = {} # ip -> (subject, relation)
-
-def _client_ip() -> str:
-    from flask import request
-    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "local")
-    return ip.split(",")[0].strip()
-
-# --- Miss-context memory (very small, per IP) ---
-from collections import defaultdict
-LAST_MISS: dict[str, tuple[str,str]] = {} # ip -> (subject, relation)
-
-def _client_ip() -> str:
-    return (request.headers.get("X-Forwarded-For") or request.remote_addr or "local").split(",")[0].strip()
-
-
-
-# --- Admin guards / rate limit / size cap ---
-from collections import deque
-from time import time
-
-# Cap request bodies (1 MB) so nobody posts huge payloads by mistake
-app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
-
-# Simple global rate-limit: 60 requests per minute per IP
-VISITS: dict[str, deque] = {}
-RATE_LIMIT = 60
-WINDOW = 60.0
-
-from functools import wraps
-
-ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "dev-secret-123")
-
-def require_admin(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        tok = request.args.get("token") \
-              or request.headers.get("X-Admin-Token") \
-              or (request.get_json(silent=True) or {}).get("token")
-        if tok != ADMIN_TOKEN:
-            return jsonify({"ok": False, "error": "forbidden"}), 403
-        return f(*args, **kwargs)
-    return wrapper
-
-def _rate_limited(ip: str) -> bool:
-    q = VISITS.setdefault(ip, deque())
-    now = time.time()
-    # drop old entries
-    while q and now - q[0] > WINDOW:
-        q.popleft()
-    if len(q) >= RATE_LIMIT:
-        return True
-    q.append(now)
-    return False
-
-def _admin_ok() -> bool:
-    """Accept token via header, query, or json. Falls back to .env ADMIN_TOKEN."""
-    token = (
-        (request.headers.get("x-admin-token"))
-        or (request.args.get("token"))
-        or ((request.is_json and request.get_json(silent=True) or {}).get("token"))
-    )
-    expected = os.getenv("ADMIN_TOKEN", "dev-secret-123")
-    return token == expected
-
-    
-
-
-
-import re
-
-def handle_user_text(user_text: str):
-    """
-    Unified handler for SoNo:
-      - Guards
-      - Identity hook (SoNo speaks for himself)
-      - Hard-routed Q&A for Ty/Pam
-      - Intent parse
-      - Teach/update/forget
-      - Memory-first
-      - GPT fallback
-    Always returns {ok, source, response}
-    """
-    try:
-        txt_raw = user_text or ""
-        txt = txt_raw.strip()
-
-        # ---------- Guards ----------
-        if not txt:
-            return {"ok": False, "source": "guard", "response": "Type something first."}
-
-        if len(txt) > 1200:
-            return {
-                "ok": False,
-                "source": "guard",
-                "response": f"Input too long ({len(txt)} chars). Keep it under 1200."
-            }
-
-        if _looks_dangerous(txt):
-            return {"ok": False, "source": "guard", "response": "Potentially dangerous input blocked."}
-
-        lower = txt.lower()
-
-        # ---------- Identity ----------
-        if lower in ("who are you", "what's your name", "what is your name"):
-            return {"ok": True, "source": "identity", "response": f"My name is {IDENTITY['name']}."}
-
-        if "who created you" in lower:
-            return {"ok": True, "source": "identity", "response": "I was created by Ty Butler and New Chapter Media Group."}
-
-        if "what's your mission" in lower or "what is your mission" in lower:
-            return {"ok": True, "source": "identity", "response": "My mission is to support, guide, and carry forward the Butler family’s legacy with clarity and care."}
-
-        # ---------- Hard-routed family Q&A ----------
-        if "who is ty" in lower and ("mom" in lower or "mother" in lower):
-            ans = store.recall("ty", "mom")
-            if ans:
-                return {"ok": True, "source": "memory", "response": f"{ans.title()} is Ty's mom."}
-            return {"ok": True, "source": "memory", "response": "Pam is Ty's mom."}
-
-        if "pam" in lower and "full name" in lower:
-            ans = store.recall("pam", "full name")
-            if ans:
-                return {"ok": True, "source": "memory", "response": f"{ans} is Pam's full name."}
-            return {"ok": True, "source": "memory", "response": "Pamlea Butler is Pam's full name."}
-
-        if ("where was pam raised" in lower or "where did pam grow up" in lower):
-            ans = store.recall("pam", "hometown")
-            if ans:
-                return {"ok": True, "source": "memory", "response": f"{ans} is where Pam was raised."}
-            return {"ok": True, "source": "memory", "response": "Pam was raised in Midland, Texas and Los Angeles."}
-
-        if "where was pam born" in lower or "pam's birthplace" in lower:
-            ans = store.recall("pam", "birthplace")
-            if ans:
-                return {"ok": True, "source": "memory", "response": f"Pam was born in {ans}."}
-            return {"ok": True, "source": "memory", "response": "Pam was born in Midland, Texas."}
-
-        # ---------- Intent ----------
-        kind, sub, rel, obj = parse_intent(txt)
-
-        if kind == "teach":
-            store.remember(sub, rel, obj)
-            return {"ok": True, "source": "teach", "response": f"Got it — {sub.title()}'s {rel} is {obj}."}
-
-        if kind == "update":
-            store.update(sub, rel, obj)
-            return {"ok": True, "source": "teach", "response": f"Updated — {sub.title()}'s {rel} is now {obj}."}
-
-        if kind == "forget":
-            ok = store.forget(sub, rel)
-            if ok:
-                return {"ok": True, "source": "teach", "response": f"Deleted — {sub.title()}'s {rel}."}
-            return {"ok": False, "source": "teach", "response": "Nothing to delete."}
-
-        # ---------- Memory-first ----------
-        if sub and rel:
-            ans = store.recall(sub, rel)
-            if ans:
-                subj = sub.title()
-                if rel.lower() in ("mom", "mother", "dad", "father"):
-                    resp = f"{ans.title()} is {subj}'s {rel}."
-                else:
-                    resp = f"{ans} is {subj}'s {rel}."
-                return {"ok": True, "source": "memory", "response": resp}
-
-        # ---------- GPT fallback ----------
-        try:
-            ok_gpt, reply = gpt_bridge(txt)
-        except Exception as e:
-            ok_gpt, reply = False, f"(GPT error: {e.__class__.__name__})"
-
-        if ok_gpt and reply:
-            return {"ok": True, "source": "gpt", "response": reply}
-
-        # ---------- Final fallback ----------
-        return {"ok": True, "source": "fallback", "response": "I don’t know yet — tell me and I’ll save it."}
-
-    except Exception as e:
-        return {"ok": False, "source": "error", "response": f"Handler error: {e.__class__.__name__}"}
-
-# ---------- Free-form assertion teach helper (Step 5) ----------
-import re
-from normalize import canonical_subject # we already use normalize elsewhere
-
-# Accepts things like:
-# - "ivy's favorite color is royal blue"
-# - "ivys favorite color is royal blue" (no apostrophe)
-# - "ty’s mother is pam"
-# - "ty's mom is pam"
-#
-# Returns (sub, rel, obj) or None
-def _extract_assertion(text: str):
-    t = (text or "").strip()
-    if not t or t.endswith("?"):
-        return None
-    # skip obvious questions/intents
-    if t.lower().startswith(("what", "who", "where", "when", "which", "how")):
-        return None
-
-    # normalize fancy apostrophes
-    t = t.replace("’", "'")
-
-    # PATTERN A: "<sub>'s <rel> is <obj>"
-    m = re.match(r"^\s*([A-Za-z][A-Za-z0-9 ]{0,40})\s*'?s\s+([A-Za-z][A-Za-z0-9 ]{0,60})\s*(?:is|=|:)\s*(.+)$", t, re.IGNORECASE)
-    if m:
-        raw_sub = m.group(1).strip()
-        rel = m.group(2).strip().lower()
-        obj = m.group(3).strip().rstrip(".")
-        sub = canonical_subject(raw_sub)
-        return (sub, rel, obj)
-
-    # PATTERN B: "<sub> <rel> is <obj>" for common relations (favorite/mom/mother/father/born/home/hometown/pet/pets)
-    m2 = re.match(r"^\s*([A-Za-z][A-Za-z0-9 ]{0,40})\s+([A-Za-z][A-Za-z0-9 ]{0,60})\s*(?:is|=|:)\s*(.+)$", t, re.IGNORECASE)
-    if m2:
-        raw_sub = m2.group(1).strip()
-        rel = m2.group(2).strip().lower()
-        obj = m2.group(3).strip().rstrip(".")
-        # only accept if the relation looks like a “facty” relation (to avoid hijacking normal sentences)
-        REL_WHITELIST = ("favorite", "mom", "mother", "dad", "father", "hometown", "home town", "home", "born", "pet", "pets", "coffee", "coffee order", "sport", "favorite sport", "team", "favorite team")
-        if any(rel.startswith(ok) for ok in REL_WHITELIST):
-            sub = canonical_subject(raw_sub)
-            return (sub, rel, obj)
+        pass
 
     return None
+# ------------------------------------------------------------------------------
 
-@app.route("/intro", methods=["GET"])
-def intro():
+# ---- Optional GPT (only used if OPENAI_API_KEY is set) ----
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+_openai_client = None
+if OPENAI_API_KEY:
     try:
-        text = build_intro()
-        return jsonify({"ok": True, "text": text}), 200
+        from openai import OpenAI
+        _openai_client = OpenAI(api_key=OPENAI_API_KEY)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        print("OpenAI init error:", e)
 
-        
+# ---- Local modules (with safe fallbacks for utils) ----
+try:
+    from ingest_pam import load_pam_facts as _load_pam_txt
+except Exception:
+    _load_pam_txt = None
 
-def _clean(s: str) -> str:
-    return (s or "").strip().rstrip(".").strip()
+try:
+    from utils import save_memory as _save_memory, log_unknown_input as _log_unknown_input
+except Exception:
+    def _save_memory(*_a, **_k): pass
+    def _log_unknown_input(*_a, **_k): pass
 
-# “Ty’s mom is Pam” -> ("Ty", "mom", "Pam")
-# accept straight ' and curly ’
-FACT_RE = re.compile(
-    r"^\s*([A-Za-z][A-Za-z\s\-]*?)[’']s\s+([A-Za-z][A-Za-z\s\-]*)\s+is\s+(.+?)\s*\.?\s*$",
-    re.IGNORECASE
+# -------------------------------------------------------------------------------------------
+# App / Paths
+# -------------------------------------------------------------------------------------------
+app = Flask(__name__, template_folder="templates")
+
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True, parents=True)
+
+MEM_FILE = Path("memory_store.json")
+SESSION_FILE = Path("session_memory.json") # if you use it, we won't choke
+PAM_JSON = DATA_DIR / "pam_facts_flat.json"
+PAM_TXT = DATA_DIR / "pam_facts_flat.json" if (DATA_DIR / "pam_facts_flat.json").exists() else Path("pam_facts_flat.json")
+
+# Initialize MemoryStore with both pam facts and runtime memory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STORE = MemoryStore(
+    base_dir=BASE_DIR,
+    facts_file=str(PAM_JSON),
+    runtime_file=str(MEM_FILE),
 )
 
-def parse_fact(text: str):
-    m = FACT_RE.match(text)
-    if not m:
-        raise ValueError("unrecognized fact")
-    subj = _clean(m.group(1))
-    rel = _clean(m.group(2))
-    obj = _clean(m.group(3))
-    return subj, rel, obj
-
-# “Who is Ty’s mom?” -> ("Ty", "mom")
-WHO_RE = re.compile(r"^\s*who\s+is\s+([A-Za-z][A-Za-z\s\-]*?)[’']s\s+([A-Za-z][A-Za-z\s\-]*)\s*\??\s*$",re.IGNORECASE)
-
-def parse_who(text: str):
-    m = WHO_RE.match(text)
-    if not m:
-        return None, None
-    subj = _clean(m.group(1))
-    rel = _clean(m.group(2))
-    return subj, rel
-
-# ---- Env (optional LLM rewriter) --------------------------------------------
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:
-    pass
-
-OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
-OPENAI_MODEL = os.getenv("SONO_MODEL", "gpt-5")
-
-# ---- Logging / Validation ----------------------------------------------------
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("sono")
-
-MAX_INPUT_LEN = 500 # guard against very long inputs
-
-def validate_input_str(s: str, max_len: int = 160) -> bool:
-    return isinstance(s, str) and 0 < len(s.strip()) <= max_len
-
-# ---- Memory layer ------------------------------------------------------------
-try:
-    from soulnode_memory import SoulNodeMemory
-except Exception as e:
-    raise RuntimeError(f"Could not import SoulNodeMemory: {e}")
-
-
-
-# =============================================================================
-# Text Normalization + Aliases
-# =============================================================================
-
-def _clean_text(t: str) -> str:
-    if not t:
-        return ""
-    t = t.replace("’", "'").replace("‘", "'").replace("`", "'")
-    t = t.replace("“", '"').replace("”", '"')
-    t = re.sub(r"\s+", " ", t).strip()
-    return t
-
-def _loose_possessives(t: str) -> str:
-    """
-    Treat 'Pams husband' like 'Pam's husband' (light-touch).
-    """
-    rel_words = r"(husband|wife|father|mother|son|daughter|child|children|kid|kids|sibling|siblings|brother|brothers|sister|sisters|mission|purpose|goal|spouse|birthday|birthdate|birth date|birth place|birthplace|raised by|restaurants|favorite restaurants|favorite foods|schools attended|full name|name|pet|pets)"
-    def fix(m):
-        return f"{m.group(1)}'s {m.group(2)}"
-    pattern = re.compile(r"\b([A-Za-z]+)s\s+" + rel_words + r"\b", re.I)
-    return pattern.sub(fix, t)
-
-def _titlecase_name(s: str) -> str:
-    return s[:1].upper() + s[1:] if s else s
-
-# ---- Subject Aliases (any → canonical seed) ---------------------------------
-SUBJECT_ALIASES = {
-    # Pam
-    "pam": "Pam",
-    "pamela": "Pam",
-    "pamela butler": "Pam",
-    "pam butler": "Pam",
-    "pam's": "Pam",
-    "pams": "Pam",
-    # Rickey
-    "rickey": "Rickey",
-    "ricky": "Rickey",
-    "rickey butler": "Rickey",
-    "ricky butler": "Rickey",
-    # Family nicknames (expandable)
-    "big mama": "Mamie Sorrell",
-    "mama lil": "Lillian Miller",
+# -------------------------------------------------------------------------------------------
+# Identity (NEVER GPT)
+# -------------------------------------------------------------------------------------------
+IDENTITY = {
+    "name": "SoNo",
+    "creators": "Ty Butler / NCMG",
+    "mission": "steady, helpful memory for Pam—clear answers without drama.",
 }
 
-def _canon_subject(s: str) -> str:
-    k = (s or "").strip().lower()
-    return SUBJECT_ALIASES.get(k, _titlecase_name((s or "").strip()))
+_CREATOR_WORDS = {"created","built","made","developed","invented","creator","founded"}
+_CREATOR_NAMES = {"ty","ty butler","ncmg","butler","openai"}
+_ID_PURPOSE = {"purpose","role","job","mission","why are you here","why do you exist","what do you do"}
 
-def _subject_candidates(subj: str):
-    """
-    Return many spellings/cases so lookups hit your stored lowercase keys.
-    """
-    s = (subj or "").strip()
-    low = s.lower()
-    cands = {s, s.lower(), _titlecase_name(s)}
-    # Pam cluster
-    if "pam" in low or "pamela" in low:
-        cands.update({
-            "Pam", "pam",
-            "Pamela", "pamela",
-            "Pam Butler", "pam butler",
-            "Pamela Butler", "pamela butler"
-        })
-    # Rickey cluster (include Ricky spelling)
-    if "rick" in low:
-        cands.update({
-            "Rickey", "rickey",
-            "Ricky", "ricky",
-            "Rickey Butler", "rickey butler",
-            "Ricky Butler", "ricky butler"
-        })
-    return list(cands)
+def identity_answer(text: str) -> Optional[str]:
+    t = (text or "").lower().replace("’","'").strip()
+    if any(p in t for p in ("who are you","what are you","tell me about yourself","your name","what is your name","what's your name")):
+        if "name" in t:
+            return f"My name is {IDENTITY['name']}."
+        return f"I’m {IDENTITY['name']}, created by {IDENTITY['creators']}. My mission is {IDENTITY['mission']}"
+    if any(p in t for p in _ID_PURPOSE):
+        return f"My mission is {IDENTITY['mission']}"
+    if "who created you" in t or "who made you" in t or "who developed you" in t \
+       or any(w in t for w in _CREATOR_WORDS) or any(n in t for n in _CREATOR_NAMES) \
+       or "you were created by" in t or "if ty built you" in t or "if ty created you" in t:
+        return f"I was created by {IDENTITY['creators']}."
+    if "your hometown" in t:
+        return "I don’t have a hometown — I’m software. My mission is steady, helpful memory for Pam."
+    return None
 
-# ---- Relation synonyms → canonical keys -------------------------------------
-def _normalize_synonym(rel_raw: str) -> str:
-    r = re.sub(r"\s+", " ", (rel_raw or "").lower().strip())
-    # group / family
-    if r in {"child","kid","kids","children"}: return "children"
-    if r in {"brothers","sisters","sibling","siblings"}: return "siblings"
-    if r in {"spouse"}: return "husband"
-    # birth
-    if r in {"dob","date of birth","birth date","birthdate","birthday"}: return "birthday"
-    if r in {"born","from","birth place","place of birth","birthplace"}: return "birthplace"
-    # details
-    if r in {"fullname","full name","name"}: return "full name"
-    if r in {"raised","raisedby","raised by"}: return "raised by"
-    if r in {"restaurants","favorite restaurants","favorite_restaurants"}: return "favorite restaurants"
-    if r in {"foods","favorite foods","favorite_meals","meals"}: return "favorite foods"
-    if r in {"schools","schools attended","education","educated at"}: return "schools attended"
-    if r in {"pet","pets","animals"}: return "pet"
-    return r
+# -------------------------------------------------------------------------------------------
+# Memory store + helpers (no dependency on store.search)
+# -------------------------------------------------------------------------------------------
+store = MemoryStore()
 
-# =============================================================================
-# Assertion Parsing (Natural-language SAVE)
-# =============================================================================
+REL_ALIASES: Dict[str, str] = {
+    # names
+    "name":"full name","full_name":"full name",
+    # birth/home
+    "birth place":"birthplace","where born":"birthplace","born":"birthplace",
+    "home":"hometown","home town":"hometown","where from":"hometown","raised":"hometown","grow up":"hometown","grown up":"hometown",
+    # family
+    "mother":"mom",
+    # favorites / comfort
+    "favourite color":"favorite color","fav color":"favorite color","colour":"favorite color",
+    "favorite show":"comfort show","comfort tv":"comfort show","tv comfort":"comfort show",
+    "favorite snack":"comfort snack","comfort snacks":"comfort snack","snack":"comfort snack",
+    # misc
+    "education":"schools","school":"schools",
+    "doc":"doctor","physician":"doctor",
+    "cell":"phone","mobile":"phone","telephone":"phone",
+}
+_CANON_REL = {
+    "full name","birthplace","hometown","mom","favorite color","comfort show","comfort snack",
+    "pets","schools","meds","allergies","doctor","emergency contact","phone","church","middle name",
+}
 
-ASSERT_PATTERNS = [
-    # "Pam's husband is Rickey"
-    re.compile(
-        r"^\s*(?P<subject>[^?]+?)'s\s+(?P<relation>[A-Za-z\- ]+?)\s+is\s+(?P<object>[^.?!]+)\s*[.?!]?\s*$",
-        re.I,
-    ),
-    # "Rickey is (the) husband of Pam"
-    re.compile(
-        r"^\s*(?P<object>[^?]+?)\s+is\s+(?:the\s+)?(?P<relation>[A-Za-z\- ]+?)\s+of\s+(?P<subject>[^.?!]+)\s*[.?!]?\s*$",
-        re.I,
-    ),
-    # "Pam has children Ty Aja and Jade" / "Pam's favorite restaurants are ..."
-    re.compile(
-        r"^\s*(?P<subject>[^?]+?)\s+has\s+(?P<relation>[A-Za-z\- ]+?)\s+(?P<object>[^.?!]+)\s*[.?!]?\s*$",
-        re.I,
-    ),
-]
+def _best_rel_match(r: str) -> str:
+    r = (r or "").strip().lower().replace("_"," ")
+    r = REL_ALIASES.get(r, r)
+    if r in _CANON_REL: return r
+    best, score = r, 0.0
+    for cand in _CANON_REL.union(set(REL_ALIASES.values())):
+        s = SequenceMatcher(None, r, cand).ratio()
+        if s > score: best, score = cand, s
+    return best if score >= 0.68 else r
 
-def _split_names_loose(s: str):
-    """
-    Split loose lists like "Ty, Aja and Jade" / "El Torito's, Chili's and Carter's BBQ"
-    """
-    s2 = re.sub(r"\s*(?:,|and|&)\s*", ",", s, flags=re.I)
-    parts = [p.strip() for p in s2.split(",") if p.strip()]
-    if len(parts) == 1:
-        parts = [p for p in re.split(r"\s+", parts[0]) if p]
-    return [_titlecase_name(p) for p in parts]
+def _norm_sub(s: str) -> str:
+    s = (s or "").strip().lower()
+    if s.endswith("’s") or s.endswith("'s"): s = s[:-2]
+    return s
 
-def parse_assertion(text: str):
-    t = _loose_possessives(_clean_text(text))
-    if not t:
+def mem_recall(sub: str, rel: str) -> Optional[str]:
+    try:
+        return store.recall(_norm_sub(sub), _best_rel_match(rel))
+    except Exception:
         return None
-    for pat in ASSERT_PATTERNS:
-        m = pat.match(t)
-        if m:
-            subj = _canon_subject(m.group("subject").strip(" '\""))
-            rel = _normalize_synonym(m.group("relation"))
-            obj_raw = m.group("object").strip(" '\"")
-            if rel in {"children","siblings","favorite foods","favorite restaurants","schools attended","raised by","pet"}:
-                obj = _split_names_loose(obj_raw)
-            else:
-                obj = _titlecase_name(obj_raw)
-            return (subj, rel, obj)
-    return None
 
-# =============================================================================
-# Question Parsing (LOOKUP) — relaxed, multi-word, yes/no forms
-# =============================================================================
+def mem_remember(sub: str, rel: str, val: str) -> None:
+    try:
+        store.remember(_norm_sub(sub), _best_rel_match(rel), (val or "").strip())
+        # try to persist safely if MemoryStore exposes save()
+        if hasattr(store, "save"):
+            try: store.save()
+            except Exception as e: print("store.save error:", e)
+    except Exception as e:
+        print("memory remember error:", e)
 
-QUESTION_PATTERNS = [
-    # 0) exact: "who raised pam" / "who primarily raised pam"
-    re.compile(r"^\s*who\s+(?:primarily\s+)?raised\s+(.+?)\b.*$", re.I),
+def mem_forget(sub: str, rel: str) -> bool:
+    try:
+        ok = bool(store.forget(_norm_sub(sub), _best_rel_match(rel)))
+        if ok and hasattr(store, "save"):
+            try: store.save()
+            except Exception as e: print("store.save error:", e)
+        return ok
+    except Exception:
+        return False
 
-    # 0b) possessive-only question: "Pam's <relation>" (NEW)
-    re.compile(r"^\s*([A-Za-z][\w \-]+?)'s\s+([\w\- ]{1,30})\b.*$", re.I),
+# -------------------------------------------------------------------------------------------
+# Preload: memory_store.json (any shape), pam_facts_flat.json, pam_facts_flat.json
+# -------------------------------------------------------------------------------------------
+def _load_memory_store_json(p: Path) -> int:
+    if not p.exists(): return 0
+    try:
+        raw = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as e:
+        print("[MemoryStore] Failed to load", p.name, ":", e)
+        return 0
 
-    # 1) who/what/where with possessive ("who is pam's husband" etc.)
-    re.compile(r"^\s*who\s+(?:is|are|was|were)\s+(.+?)'s\s+([\w\- ]{1,30})\b.*$", re.I),
-    re.compile(r"^\s*what\s+(?:is|are|was|were)\s+(.+?)'s\s+([\w\- ]{1,30})\b.*$", re.I),
-    re.compile(r"^\s*where\s+(?:is|was)\s+(.+?)'s\s+([\w\- ]{1,30})\b.*$", re.I),
+    added = 0
+    try:
+        if isinstance(raw, dict):
+            # dict-of-dicts {sub: {rel: val}}
+            for sub, rels in raw.items():
+                if not isinstance(rels, dict): continue
+                for rel, val in rels.items():
+                    mem_remember(str(sub), str(rel), str(val)); added += 1
+        elif isinstance(raw, list):
+            # list of triples/objs
+            for item in raw:
+                if isinstance(item, dict) and all(k in item for k in ("sub","rel","val")):
+                    mem_remember(item["sub"], item["rel"], item["val"]); added += 1
+                elif isinstance(item, (list, tuple)) and len(item) >= 3:
+                    sub, rel, val = item[0], item[1], item[2]
+                    mem_remember(str(sub), str(rel), str(val)); added += 1
+        else:
+            print("[MemoryStore] Unsupported JSON shape in", p.name)
+    except Exception as e:
+        print("[MemoryStore] Ingest error:", e)
 
-    # 2) terse forms: "pam siblings", "pam birthplace", "rickey schools attended"
-    re.compile(r"^\s*([\w \-]+?)\s+([\w\- ]{1,30})\b.*$", re.I),
+    return added
 
-    # 3) where-born forms: "where was pam born", "where is rickey from"
-    re.compile(r"^\s*where\s+(?:was|is)\s+(.+?)\s+(?:born|from)\b.*$", re.I),
+def _load_pam_flat(p: Path) -> int:
+    if not p.exists(): return 0
+    try:
+        doc = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as e:
+        print("[pam_facts_flat] load error:", e); return 0
 
-    # 4) did/does/has… forms (yes/no → convert to canonical relation)
-    re.compile(r"^\s*(?:did|does|has|have)\s+(.+?)\s+(?:have|has)\s+(?:a|any\s+)?(pets?|children|kids|siblings?)\b.*$", re.I),
-    re.compile(r"^\s*(?:did|does|has|have)\s+(.+?)\s+(?:have|has)\s+(?:a|any\s+)?(husband|spouse)\b.*$", re.I),
-]
+    facts = []
+    if isinstance(doc, dict) and isinstance(doc.get("facts"), list):
+        facts = doc["facts"]
+    elif isinstance(doc, list):
+        facts = doc
+    else:
+        print("[pam_facts_flat] unexpected shape; expected list or {'facts': [...]}"); return 0
 
-def _natural_alias(text: str) -> Optional[Tuple[str,str]]:
-    """
-    Soft rewrite common natural questions to (subject, relation).
-    """
-    x = _loose_possessives(_clean_text(text))
-    xl = x.lower()
+    added = 0
+    for item in facts:
+        if not isinstance(item, dict): continue
+        sub = str(item.get("sub","pam")).strip() or "pam"
+        rel = str(item.get("rel","")).strip()
+        val = str(item.get("val","")).strip()
+        if rel and val:
+            mem_remember(sub, rel, val); added += 1
+    return added
 
-    # birthday
-    m = re.match(r"^\s*when\s+(?:is|was)\s+(.+?)'s\s+(birthday|birth\s*date|birthdate|date\s+of\s+birth|dob)\b.*$", xl, re.I)
-    if m: return (_canon_subject(m.group(1)), "birthday")
+# rename this function:
+def _load_pam_txt_file(p: Path) -> int:
+    if not (p and p.exists() and _load_pam_txt): 
+        return 0
+    try:
+        facts = _load_pam_txt(p) # this now refers to the imported loader
+    except Exception as e:
+        print("pam_facts_flat.json parse error:", e); return 0
+    added = 0
+    if isinstance(facts, dict):
+        for rel, val in facts.items():
+            if not str(val).strip(): 
+                continue
+            mem_remember("pam", str(rel), str(val)); added += 1
+    return added
 
-    # birthplace
-    m = re.match(r"^\s*where\s+(?:is|was)\s+(.+?)\s+born\b.*$", xl, re.I)
-    if m: return (_canon_subject(m.group(1)), "birthplace")
+pre_added = _load_memory_store_json(MEM_FILE)
+pre_added += _load_memory_store_json(SESSION_FILE)
+pre_added += _load_pam_flat(PAM_JSON)
+pre_added += _load_pam_txt_file(PAM_TXT)
+print(f"[app] Preloaded facts into memory: {pre_added}")
 
-    # who raised <subject>
-    m = re.match(r"^\s*who\s+(?:primarily\s+)?raised\s+(.+?)\b.*$", xl, re.I)
-    if m: return (_canon_subject(m.group(1)), "raised by")
+# -------------------------------------------------------------------------------------------
+# Teach parsing (commands + natural)
+# -------------------------------------------------------------------------------------------
+_last_q_rel: Optional[Tuple[str,str]] = None
 
-    # favorites
-    m = re.match(r"^\s*what\s+(?:are|were)\s+(.+?)'s\s+favorite\s+restaurants?\b.*$", xl, re.I)
-    if m: return (_canon_subject(m.group(1)), "favorite restaurants")
-    m = re.match(r"^\s*what\s+(?:are|were)\s+(.+?)'s\s+favorite\s+(?:foods?|meals?)\b.*$", xl, re.I)
-    if m: return (_canon_subject(m.group(1)), "favorite foods")
+DISCARD_PREFIXES = re.compile(r"^(?:actually|ok|okay|so|well|listen|correction|update)[,:\- ]+\s*", re.I)
+def _strip_discards(s: str) -> str:
+    return DISCARD_PREFIXES.sub("", (s or "").strip())
 
-    # spouse
-    m = re.match(r"^\s*who\s+(?:is|was)\s+(.+?)'s\s+(husband|spouse)\b.*$", xl, re.I)
-    if m: return (_canon_subject(m.group(1)), "husband")
+PRONOUNS = {
+    "her":"pam","she":"pam","mom":"pam","mother":"pam",
+    "him":"ty","he":"ty","dad":"ty","father":"ty",
+    "me":"ty","my":"ty","i":"ty",
+}
 
-    # did/does have X
-    m = re.match(r"^\s*(?:did|does|has|have)\s+(.+?)\s+(?:have|has)\s+(?:a|any\s+)?(pets?|children|kids|siblings?)\b.*$", xl, re.I)
-    if m: return (_canon_subject(m.group(1)), _normalize_synonym(m.group(2)))
+def resolve_profile_subject(profile: str) -> str:
+    return "ty" if (profile or "ty").strip().lower()=="ty" else "pam"
 
-    return None
+def resolve_subject_token(tok: str, profile: str) -> str:
+    tok = (tok or "").lower()
+    if tok in PRONOUNS: return PRONOUNS[tok]
+    if tok in {"me","my","i"}: return "ty"
+    if tok in {"she","her","mom","mother"}: return "pam"
+    return _norm_sub(tok)
 
-def parse_subject_relation(text: str) -> Optional[Tuple[str, str]]:
-    t = _loose_possessives(_clean_text(text))
-    for pat in QUESTION_PATTERNS:
-        m = pat.match(t)
-        if not m:
+def fallback_subject(profile: str) -> str:
+    if _last_q_rel: return _last_q_rel[0]
+    return resolve_profile_subject(profile)
+
+TEACH_CMD = re.compile(
+    r"^(?:remember|set|save|update|teach|learn)\s+(?:that\s+|the\s+)?(?P<left>.+?)\s+(?:is|=|to)\s+(?P<val>.+)$",
+    re.I,
+)
+
+def try_teach_command(raw: str, active_profile: str) -> Optional[str]:
+    t = _strip_discards(raw)
+    m = TEACH_CMD.match(t)
+    if not m: return None
+    left, val = m.group("left").strip(), m.group("val").strip()
+    msub = re.match(r"^([A-Za-z]+)(?:'s|’s)?\s+(.*)$", left)
+    if msub:
+        subj = resolve_subject_token(msub.group(1), active_profile)
+        rel = _best_rel_match(msub.group(2))
+    else:
+        subj = fallback_subject(active_profile)
+        rel = _best_rel_match(left)
+
+    if subj == "pam" and rel in {"born","where born","birth place"}: rel = "birthplace"
+    mem_remember(subj, rel, val)
+    _save_memory(store, subj, rel, val) # no-op if utils not present
+    return f"Got it — {subj.title()}'s {rel} is {val}."
+
+# Natural statements (NOT questions)
+DECL_RXES: Tuple[Tuple[re.Pattern, str], ...] = (
+    (re.compile(r"^([a-z][a-z _-]{1,40})\s+(?:is|=|to)\s+(.+)$", re.I), "REL_FIRST"), # "hometown is LA"
+    (re.compile(r"^my\s+(.+?)\s+(?:is|=|to)\s+(.+)$", re.I), "PROFILE"), # "my doctor is Dr Lee"
+    (re.compile(r"^([A-Za-z]+)(?:'s|’s)\s+(.+?)\s+(?:is|=|to)\s+(.+)$", re.I), "POSSESSIVE"), # "Pam's doctor is ..."
+    (re.compile(r"^([A-Za-z]+)\s+(.+?)\s+(?:is|=|to)\s+(.+)$", re.I), "SUBJ_REL"), # "Pam doctor is ..."
+    (re.compile(r"^([A-Za-z]+)\s+(?:was\s+)?(?:born\s+in|birth\s*place|birthplace)\s+(.+)$", re.I), "BORN"),
+)
+
+def try_teach_natural(raw: str, active_profile: str) -> Optional[str]:
+    t = _strip_discards(raw)
+    if t.endswith("?") or re.match(r"^(who|what|where|when|how)\b", t, re.I):
+        return None
+
+    for rx, kind in DECL_RXES:
+        m = rx.match(t)
+        if not m: 
             continue
 
-        p = pat.pattern
+        if kind == "REL_FIRST":
+            sub = fallback_subject(active_profile)
+            rel = _best_rel_match(m.group(1))
+            val = m.group(2).strip()
+        elif kind == "PROFILE":
+            sub = resolve_profile_subject(active_profile)
+            rel = _best_rel_match(m.group(1))
+            val = m.group(2).strip()
+        elif kind == "POSSESSIVE":
+            sub = resolve_subject_token(m.group(1), active_profile)
+            rel = _best_rel_match(m.group(2))
+            val = m.group(3).strip()
+        elif kind == "SUBJ_REL":
+            sub = resolve_subject_token(m.group(1), active_profile)
+            rel = _best_rel_match(m.group(2))
+            val = m.group(3).strip()
+        else: # BORN
+            sub = resolve_subject_token(m.group(1), active_profile)
+            rel, val = "birthplace", m.group(2).strip()
 
-        # 0) who raised <subject>
-        if p.startswith("^\\s*who\\s+(?:primarily\\s+)?raised\\s+"):
-            subj_raw = m.group(1)
-            return (_canon_subject(subj_raw.strip("'\" ")), "raised by")
-
-        # 0b) "X's Y" possessive-only (NEW)
-        if p.startswith("^\\s*([A-Za-z]"):
-            subj_raw = m.group(1); rel_raw = m.group(2)
-            return (_canon_subject(subj_raw.strip("'\" ")), _normalize_synonym(rel_raw))
-
-        # 3) where was/is <subject> born/from
-        if p.startswith("^\\s*where\\s+"):
-            subj_raw = m.group(1); rel_raw = "birthplace"
-            return (_canon_subject(subj_raw.strip("'\" ")), _normalize_synonym(rel_raw))
-
-        # 4) did/does/has … have pets/kids/siblings/husband
-        if p.startswith("^\\s*(?:did|does|has|have)"):
-            subj_raw = m.group(1); rel_raw = m.group(2)
-            return (_canon_subject(subj_raw.strip("'\" ")), _normalize_synonym(rel_raw))
-
-        # default: two-capture patterns like "pam siblings", "who is pam's husband"
-        subj_raw = m.group(1); rel_raw = m.group(2)
-        return (_canon_subject(subj_raw.strip("'\" ")), _normalize_synonym(rel_raw))
-
-    # natural alias fallback
-    alias = _natural_alias(text)
-    if alias:
-        return alias
-
+        if sub == "pam" and rel in {"born","where born","birth place"}: rel = "birthplace"
+        mem_remember(sub, rel, val)
+        _save_memory(store, sub, rel, val)
+        return f"Got it — {sub.title()}'s {rel} is {val}."
     return None
 
-# =============================================================================
-# Memory Access + Answer Formatting
-# =============================================================================
+# -------------------------------------------------------------------------------------------
+# Recall (messy phrasing, pronouns, fuzzy relations + summaries)
+# -------------------------------------------------------------------------------------------
+_REL_KEYWORDS: Tuple[Tuple[set, str], ...] = (
+    ({"born","birth","birth place","birthplace","where born"}, "birthplace"),
+    ({"hometown","home town","from","raised","grow up","grown up"}, "hometown"),
+    ({"full name","name"}, "full name"),
+    ({"mom","mother"}, "mom"),
+    ({"favorite color","favourite color","fav color","colour"}, "favorite color"),
+    ({"comfort show","comfort tv","favorite show"}, "comfort show"),
+    ({"comfort snack","snack","favorite snack"}, "comfort snack"),
+    ({"pets","pet"}, "pets"),
+    ({"schools","school","education"}, "schools"),
+    ({"phone","cell","mobile","telephone"}, "phone"),
+    ({"doctor","doc","physician"}, "doctor"),
+)
 
-def call_memory_lookup(subj: str, rel: str) -> Optional[Any]:
-    for name in ["ask", "get", "get_fact", "recall", "query", "answer", "search", "find"]:
-        if hasattr(memory, name) and callable(getattr(memory, name)):
-            try:
-                return getattr(memory, name)(subj, rel)
-            except Exception:
-                continue
-    return None
+def _format_memory_sentence(sub: str, rel: str, val: str) -> str:
+    s = _norm_sub(sub).title(); r = _best_rel_match(rel); v = str(val)
+    if r == "mom": return f"{v} is {s}'s mom."
+    if r == "full name": return f"{s}'s full name is {v}."
+    if r == "birthplace": return f"{s} was born in {v}."
+    if r == "hometown": return f"{s} grew up in {v}."
+    return f"{s}'s {r} is {v}."
 
-REL_VARIANTS = {
-    "siblings": ["siblings", "brothers and sisters", "sibling"],
-    "children": ["children", "kids", "child"],
-    "birthplace": ["birthplace", "birth place", "place of birth", "born", "from"],
-    "raised by": ["raised by", "raised", "primary caregiver"],
-    "favorite restaurants": ["favorite restaurants", "restaurants"],
-    "favorite foods": ["favorite foods", "favorite meals", "meals", "foods"],
-    "schools attended": ["schools attended", "education", "educated at", "schools"],
-    "pet": ["pet", "pets", "animals", "pet(s)"],
-    "husband": ["husband", "spouse"],
-    "full name": ["full name", "name"],
-    "birthday": ["birthday", "dob", "date of birth", "birth date", "birthdate"],
-}
+def _summary_about(sub: str) -> Optional[str]:
+    subn = _norm_sub(sub)
+    fields = ["full name","birthplace","hometown","favorite color","comfort show","comfort snack","phone","doctor","pets","schools"]
+    parts: List[str] = []
+    for f in fields:
+        v = mem_recall(subn, f)
+        if v:
+            if f == "full name": parts.append(f"Full name: {v}")
+            elif f == "birthplace":parts.append(f"Born in {v}")
+            elif f == "hometown": parts.append(f"Hometown: {v}")
+            else: parts.append(f"{f.title()}: {v}")
+    return ("; ".join(parts) + ".") if parts else None
 
-def lookup_with_variants(subj: str, rel: str):
-    """
-    Try (subject × relation) across spelling/case variants so we hit your stored keys.
-    """
-    subjects = _subject_candidates(subj)
-    variants = REL_VARIANTS.get(rel, [rel])
-    tried = set()
-    for s in subjects:
-        for r in variants:
-            for S in (s, s.lower()):
-                for R in (r, r.lower()):
-                    key = (S, R)
-                    if key in tried:
-                        continue
-                    tried.add(key)
-                    ans = call_memory_lookup(S, R)
-                    if ans not in (None, "", [], {}):
-                        return ans
-    return None
+def loose_recall(text: str, profile: str) -> Optional[Dict[str, str]]:
+    global _last_q_rel
+    t = (text or "").lower().replace("’","'").strip()
+    if not t: return None
 
-def _join_list(items) -> str:
-    items = [str(x).strip() for x in items if str(x).strip()]
-    if not items: return ""
-    if len(items) == 1: return items[0]
-    return ", ".join(items[:-1]) + ", and " + items[-1]
-
-# ---- PETS CONSOLIDATION (unchanged) -----------------------------------------
-PET_HINT_KEYS = [
-    "pet",
-    "did you ever have a pet as a kid",
-    "did pamela butler have any other family dogs",
-    "what breed was the family dog yasha",
-    "what happened to yasha",
-]
-PET_NAME_RE = re.compile(r"\b(Bell|Bail|Yasha|Pierre)\b", re.I)
-PET_BREED_RE = re.compile(r"\b(German Shepherd|Siberian/Alaskan Husky|Husky|Poodle)\b", re.I)
-
-def pet_answer(subj: str):
-    candidates = []
-    for s in _subject_candidates(subj):
-        for k in PET_HINT_KEYS:
-            a = call_memory_lookup(s, k)
-            if not a:
-                continue
-            texts = a if isinstance(a, (list, tuple)) else [a]
-            for t in texts:
-                T = str(t)
-                names = set(n.capitalize() for n in PET_NAME_RE.findall(T))
-                # normalize Bail→Bell
-                if "Bail" in names and "Bell" not in names:
-                    names.discard("Bail"); names.add("Bell")
-                for n in names:
-                    label = n
-                    if n.lower() == "yasha":
-                        label = f"{n} (Husky)"
-                    elif n.lower() == "bell":
-                        label = f"{n} (German Shepherd)"
-                    candidates.append(label)
-
-    if not candidates:
-        a = lookup_with_variants(subj, "pet")
-        if isinstance(a, (list, tuple)):
-            candidates = [str(x) for x in a]
-        elif a:
-            candidates = [str(a)]
-
-    seen, result = set(), []
-    for c in candidates:
-        key = c.lower().strip()
-        if key and key not in seen:
-            seen.add(key)
-            result.append(c)
-    return result or None
-
-def naturalize(subject: str, relation: str, obj: Any) -> str:
-    rel = relation.lower().strip(); s = subject.strip()
-    if isinstance(obj, (list, tuple)) and not isinstance(obj, str):
-        j = _join_list(obj)
-        if rel == "children": return f"{s}'s children are {j}."
-        if rel == "siblings": return f"{s}'s siblings are {j}."
-        if rel == "favorite restaurants": return f"{s}'s favorite restaurants are {j}."
-        if rel == "favorite foods": return f"{s}'s favorite foods are {j}."
-        if rel == "schools attended": return f"{s} attended {j}."
-        if rel == "raised by": return f"{s} was raised by {j}."
-        if rel == "pet": return f"{s}'s pets are {j}."
-        return f"{s}'s {rel} are {j}."
-    o = str(obj).strip()
-    mapping = {
-        "husband": f"{o} is {s}'s husband.",
-        "wife": f"{o} is {s}'s wife.",
-        "father": f"{o} is the father of {s}.",
-        "mother": f"{o} is the mother of {s}.",
-        "son": f"{o} is {s}'s son.",
-        "daughter": f"{o} is {s}'s daughter.",
-        "brother": f"{o} is {s}'s brother.",
-        "sister": f"{o} is {s}'s sister.",
-        "mission": f"{s}'s mission is: {o}",
-        "purpose": f"{s}'s purpose is: {o}",
-        "goal": f"{s}'s goal is: {o}",
-        "full name": f"{s}'s full name is {o}.",
-        "birthday": f"{s}'s birthday is {o}.",
-        "birthplace": f"{s} was born in {o}.",
-    }
-    return mapping.get(rel, f"{o} is the {relation} of {s}.")
-
-def coerce_answer_to_text(ans: Any, subj: Optional[str], rel: Optional[str]) -> Optional[str]:
-    if ans is None:
-        return None
-    if isinstance(ans, (list, tuple)) and not isinstance(ans, str):
-        return naturalize(subj or "", rel or "", list(ans))
-    if isinstance(ans, str):
-        txt = ans.strip()
-        if not txt:
-            return None
-        if subj and rel and (len(txt.split()) <= 6) and not txt.endswith(('.', '!', '?')):
-            return naturalize(subj, rel, txt)
-        return txt
-    if isinstance(ans, dict):
-        s = ans.get("subject", subj)
-        r = ans.get("relation", rel)
-        o = ans.get("object") or ans.get("value")
-        if s and r and o is not None:
-            return naturalize(str(s), str(r), o)
-    if isinstance(ans, (tuple, list)) and len(ans) >= 3:
-        s, r, o = ans[0], ans[1], ans[2]
-        return naturalize(str(s), str(r), o)
-    try:
-        return json.dumps(ans, ensure_ascii=False)
-    except Exception:
-        return str(ans)
-
-# ---- Rewriter (gentle; skipped for lists/group) ------------------------------
-def rewrite_fluent(raw_text: str) -> str:
-    if not OPENAI_API_KEY:
-        return raw_text
-    try:
-        url = "https://api.openai.com/v1/chat/completions"
-        headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
-        payload = {
-            "model": "gpt-4o-mini",
-            "temperature": 0.2,
-            "max_tokens": 60,
-            "messages": [
-                {"role": "system",
-                 "content": "Rewrite the user's sentence as ONE warm, natural sentence. Do not add opinions or extra facts. Keep under 25 words."},
-                {"role": "user", "content": raw_text}
-            ]
-        }
-        r = requests.post(url, headers=headers, json=payload, timeout=12)
-        r.raise_for_status()
-        data = r.json()
-        return data["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        logger.error(f"Rewriter error: {e}")
-        return raw_text
-
-@lru_cache(maxsize=256)
-def _rewrite_cached(s: str) -> str:
-    return rewrite_fluent(s)
-
-# =============================================================================
-# Routes
-# =============================================================================
-
-@app.route("/")
-def home():
-    return render_template("sono-ui.html")
-
-@app.route("/ask/general", methods=["POST"])
-def ask_general():
-    """
-    Robust endpoint: accepts JSON/form/query, never returns 400 to the UI.
-    All guard messages come back as 200 with { ok, source, response }.
-    """
-    try:
-        # Parse user text from any source
-        data = request.get_json(silent=True)
-        if not isinstance(data, dict):
-            data = {}
-        user_text = (
-            data.get("text")
-            or request.form.get("text")
-            or request.args.get("text")
-            or ""
-        ).strip()
-
-        # If empty, reply with guard (200 OK so UI doesn't show HTTP 400)
-        if not user_text:
-            return jsonify({"ok": False, "source": "guard", "response": "Type something first."}), 200
-
-        # Call the handler
-        result = handle_user_text(user_text)
-
-        # Safety: always return a dict
-        if not isinstance(result, dict):
-            result = {"ok": False, "source": "error", "response": "Handler returned non-dict."}
-
-        return jsonify(result), 200
-
-    except Exception as e:
-        # Never crash the route; surface as structured error
-        return jsonify({"ok": False, "source": "error", "response": f"Server error: {e.__class__.__name__}"}), 200
-
-    # --- Health check (no auth) ---
-@app.route("/healthz", methods=["GET"])
-def healthz():
-    return jsonify({"ok": True, "status": "up"}), 200
-
-@app.route("/memory/export", methods=["GET"])
-@require_admin
-def memory_export():
-    return jsonify(store.export_all())
-
-@app.route("/memory/import", methods=["POST"])
-@require_admin
-def memory_import():
-    data = request.get_json() or {}
-    payload = data.get("data")
-    confirm = data.get("confirm")
-    if not confirm:
-        return jsonify({"ok": False, "error": "confirm flag required"}), 400
-    # validate payload shape
-    if not isinstance(payload, dict):
-        return jsonify({"ok": False, "error": "invalid payload"}), 400
-    # write via store
-    store.mem = payload
-    store._atomic_write()
-    return jsonify({"ok": True, "imported": True})
-
-@app.route("/memory/clear", methods=["POST"])
-@require_admin
-def memory_clear():
-    confirm = request.args.get("confirm") or (request.get_json(silent=True) or {}).get("confirm")
-    if str(confirm).lower() not in ("1","true","yes"):
-        return jsonify({"ok": False, "error": "confirm=true required"}), 400
-    store.mem = {}
-    store._atomic_write()
-    return jsonify({"ok": True, "cleared": True})
-
-
-
-def _auth_ok(req) -> bool:
-    return (req.headers.get("x-admin-token") or req.args.get("token")) == os.getenv("ADMIN_TOKEN")
-
-
-
-@app.route("/admin/alias/subject", methods=["POST"])
-@require_admin
-def admin_alias_subject():
-    data = request.get_json() or {}
-    alias = data.get("alias")
-    canonical = data.get("canonical")
-    if not alias or not canonical:
-        return jsonify({"ok": False, "error": "alias & canonical required"}), 400
-    add_subject_alias(alias, canonical)
-    return jsonify({"ok": True, "added": {"alias": alias, "canonical": canonical}})
-
-
-    # LOOKUP: “Who is Ty’s mom?”
-    m = re.match(r"^\s*who\s+is\s+([A-Za-z][A-Za-z\s\-]*?)'s\s+([A-Za-z][A-Za-z\s\-]*)\s*\??\s*$",
-                 norm, re.IGNORECASE)
+    # Possessive: "pam's hometown?" / "her hometown?"
+    m = re.search(r"\b([a-z]+)(?:'s|’s)\s+(.+?)\??$", t)
     if m:
-        subj, rel = m.group(1).strip(), m.group(2).strip()
-        try:
-            ans = MEM.lookup(subj, rel)
-            return jsonify({"ok": True, "source": "memory", "response": ans or "I don't know yet."})
-        except Exception as e:
-            return jsonify({"ok": False, "source": "memory", "response": f"Lookup error: {e}"})
+        subj_tok = resolve_subject_token(m.group(1), profile)
+        rel = _best_rel_match(m.group(2))
+        v = mem_recall(subj_tok, rel)
+        if v:
+            _last_q_rel = (subj_tok, rel)
+            return {"ok": True, "source": "memory", "response": _format_memory_sentence(subj_tok, rel, v)}
 
-    # fallback
-    return jsonify({
-        "ok": False,
-        "source": "fallback",
-        "response": "Try teaching me: SoNo, remember that Ty's mom is Pam. Or ask: Who is Ty’s mom?"
-    })
+    # "my hometown?" / "my doctor?" etc
+    m2 = re.search(r"^my\s+(.+?)\??$", t)
+    if m2:
+        subj = resolve_profile_subject(profile)
+        rel = _best_rel_match(m2.group(1))
+        v = mem_recall(subj, rel)
+        if v:
+            _last_q_rel = (subj, rel)
+            return {"ok": True, "source": "memory", "response": _format_memory_sentence(subj, rel, v)}
 
-   
+    # “what’s her hometown” / “where was she born”
+    m3 = re.search(r"^(?:what(?:'s| is)|where(?:'s| is)?|where)\s+(?:her|she)\s+(.+?)\??$", t)
+    if m3:
+        subj = "pam"
+        rel = _best_rel_match(m3.group(1))
+        v = mem_recall(subj, rel)
+        if v:
+            _last_q_rel = (subj, rel)
+            return {"ok": True, "source": "memory", "response": _format_memory_sentence(subj, rel, v)}
 
-    # 1. Try to parse as a fact to save (teach mode)
-    if raw.lower().startswith("sono, remember"):
-        try:
-            # remove "SoNo, remember that" or "SoNo, remember"
-            fact_text = re.sub(r"(?i)^sono,\s*remember( that)?\s*", "", raw).strip(" .")
+    # “where was pam born” / “what’s pam’s hometown”
+    if "pam" in t:
+        for keys, rel in _REL_KEYWORDS:
+            if any(k in t for k in keys):
+                v = mem_recall("pam", rel)
+                if v:
+                    _last_q_rel = ("pam", rel)
+                    return {"ok": True, "source": "memory", "response": _format_memory_sentence("pam", rel, v)}
+        if any(p in t for p in ["tell me something about pam","something about pam","about pam","who is pam"]):
+            s = _summary_about("pam")
+            if s:
+                _last_q_rel = ("pam","summary")
+                return {"ok": True, "source": "memory", "response": s}
 
-            subj, rel, obj = parse_fact(fact_text)
-            MEM.remember(subj, rel, obj)
+    # Generic: “tell me something about X”
+    m4 = re.search(r"(?:tell me.*about|something about)\s+([a-z]+)$", t)
+    if m4:
+        subj = resolve_subject_token(m4.group(1), profile)
+        s = _summary_about(subj)
+        if s:
+            _last_q_rel = (subj,"summary")
+            return {"ok": True, "source": "memory", "response": s}
 
-            return jsonify({
-                "ok": True,
-                "source": "teach",
-                "response": f"Saved: {subj} {rel} {obj}"
-            })
-        except Exception as e:
-            return jsonify({
-                "ok": False,
-                "source": "teach",
-                "response": f"Couldn't parse: {e}"
-            })
+    return None
 
-    # 2. Otherwise: try memory lookup
-    answer = MEM.recall(raw)
-    if answer:
-        return jsonify({"ok": True, "source": "memory", "response": answer})
+# -------------------------------------------------------------------------------------------
+# Pam retrieval/summary (AFTER memory, BEFORE GPT)
+# -------------------------------------------------------------------------------------------
+def pam_retrieve(q: str) -> Optional[str]:
+    try:
+        if "pam" not in (q or "").lower(): return None
+        s = _summary_about("pam")
+        if s: return s
+        return "Pam is Ty's mom."
+    except Exception as e:
+        print("pam retrieve error:", e); return None
 
-    # 3. Otherwise: fallback to GPT
-    gpt_ans = ask_gpt(raw)
-    return jsonify({"ok": True, "source": "gpt", "response": gpt_ans})
+# -------------------------------------------------------------------------------------------
+# GPT fallback (guarded)
+# -------------------------------------------------------------------------------------------
+def gpt_answer(prompt: str) -> Optional[str]:
+    if not _openai_client: return None
+    try:
+        # memory guard: add known facts as “context” (light)
+        context = []
+        for sub in ("pam","ty"):
+            facts = store.export().get(sub, {}) if hasattr(store, "export") else {}
+            if isinstance(facts, dict):
+                context.append(f"{sub}: " + "; ".join(f"{k}={v}" for k,v in facts.items()))
+        sys = (
+            "You are SoNo. Be concise, steady, kind. "
+            "Never contradict explicit identity or memory facts. "
+            "If unsure, say you’re not sure."
+        )
+        msgs = [{"role":"system","content":sys}]
+        if context:
+            msgs.append({"role":"system","content":"Known facts:\n" + "\n".join(context)})
+        msgs.append({"role":"user","content":prompt})
 
+        resp = _openai_client.chat.completions.create(
+            model=OPENAI_MODEL, temperature=0.2, max_tokens=350, messages=msgs
+        )
+        return (resp.choices[0].message.content or "").strip()
+    except Exception as e:
+        print("GPT error:", e); return None
 
-    text = raw # keep it simple for now
-    low = text.lower()
+# -------------------------------------------------------------------------------------------
+# Telemetry
+# -------------------------------------------------------------------------------------------
+LAST_EVENTS = deque(maxlen=100)
+COUNTS = Counter()
+def record_event(q: str, response: str, source: str, ms: float):
+    LAST_EVENTS.appendleft({"q": q, "response": response, "source": source, "ms": round(ms,2)})
+    COUNTS[source] += 1; COUNTS["_total"] += 1
 
-    # --- TEACH only when explicitly asked to remember ---
-    is_teach = low.startswith("sono") and "remember" in low
+# -------------------------------------------------------------------------------------------
+# Main handler
+# -------------------------------------------------------------------------------------------
+def handle_question(text: str, profile: str="ty") -> Dict[str, Any]:
+    try:
+        q = (text or "").strip()
+        if not q:
+            return {"ok": False, "source": "guard", "response": "Type something first."}
+        if len(q) > 4000:
+            return {"ok": False, "source": "guard", "response": "Too long. Keep it under 4000 chars."}
+                
 
-    # init memory
-    mem = MEM
+        # 1) Identity
+        ident = identity_answer(q)
+        if ident:
+            _save_memory(store, "query", "identity", q)
+            return {"ok": True, "source": "identity", "response": ident}
 
-    if is_teach:
-        # very simple teach parser: “SoNo, remember that X's Y is Z.”
-        # e.g., "SoNo, remember that Ty's mom is Pam."
-        try:
-            # pull pieces around "'s" and " is "
-            if "'s" in text and " is " in text:
-                left, right = text.split("'s", 1)
-                subj = left.split("remember that", 1)[1].strip(" ,.")
-                rel, obj = right.split(" is ", 1)
-                rel = rel.strip(" .,:;!?").lower()
-                obj = obj.strip(" .,:;!?")
-                mem.save_fact(subj, rel, obj)
-                return jsonify({"ok": True, "source": "teach", "response": f"Saved: {subj} | {rel} | {obj}."})
-        except Exception as e:
-            logger.error(f"teach-parse error: {e}")
+        # 2) Teach
+        taught = try_teach_command(q, profile) or try_teach_natural(q, profile)
+        if taught:
+            return {"ok": True, "source": "teach", "response": taught}
 
-        return jsonify({"ok": False, "source": "teach", "response": "I couldn't parse that fact. Try: SoNo, remember that Ty's mom is Pam."})
+        # 3) Memory-first recall
+        mem = loose_recall(q, profile)
+        if mem:
+            return mem
 
-    # --- QUESTION: try memory first ---
-    subj, rel, obj = mem.match_fact(text)
-    if obj:
-        return jsonify({"ok": True, "source": "memory", "response": obj})
+        # 4) Pam retrieval/summary
+        pr = pam_retrieve(q)
+        if pr:
+            return {"ok": True, "source": "pam_facts_flat.json", "response": pr}
 
-    # fallback: don't say "Noted."—be explicit
-    return jsonify({"ok": True, "source": "fallback", "response": "I don’t know yet. Teach me with: SoNo, remember that Ty's mom is Pam."})
+        # 5) GPT fallback (optional)
+        g = gpt_answer(q)
+        if g:
+            return {"ok": True, "source": "gpt", "response": g}
 
-    # If input starts with "SoNo, remember", treat it as a fact to save
-    if raw.lower().startswith("sono, remember"):
-        fact = raw.replace("SoNo, remember", "", 1).strip()
-        if fact:
-            memorystore.save_fact(fact)
-            return jsonify({"ok": True, "response": f"Got it. Remembered: {fact}"})
-        return jsonify({"ok": False, "response": "Nothing to remember"}), 400
+        # Unknown
+        _log_unknown_input(q)
+        return {
+            "ok": True, "source": "unknown",
+            "response": "Ask me about Pam’s hometown, birthplace, full name, doctor, phone—or teach me more."
+        }
+    except Exception as e:
+        return {"ok": False, "source": "error", "response": f"Handler error: {e.__class__.__name__}"}
+    
+    # ----------------- Emotion & Tone Engine (SoulNode Personality) -----------------
+import random
 
-    # Otherwise, treat as a question → query memory first
-    memory_answer = memorystore.lookup(raw)
-    if memory_answer:
-        return jsonify({"ok": True, "response": memory_answer})
+def detect_emotion_and_tone(text: str) -> str:
+    """Lightweight mood detector + SoulNode personality routing."""
+    t = text.lower()
 
-    # If not in memory, fall back to GPT
-    gpt_answer = ask_gpt(raw)
-    return jsonify({"ok": True, "response": gpt_answer})
+    if any(word in t for word in ["sad", "tired", "drained", "alone", "hurt", "lost", "down"]):
+        return "reflective"
+    elif any(word in t for word in ["happy", "excited", "great", "love", "thank", "joy", "peace"]):
+        return "motivational"
+    elif any(word in t for word in ["legacy", "dad", "kids", "escalade", "mission", "family"]):
+        return "legacy"
+    elif any(word in t for word in ["build", "code", "fix", "test", "focus", "deploy"]):
+        return "focus"
+    elif any(word in t for word in ["bro", "fam", "man", "lol", "haha", "wild", "crazy"]):
+        return "cheeky"
 
-    text = _loose_possessives(_clean_text(raw))
-    logger.info(f"/ask/general : {text[:160]}")
-
-    # Try memory lookup
-    from solnode_memory import SoulNodeMemory
-    mem = SoulNodeMemory(owner_name="Ty")
-    subj, rel, obj = mem.match_fact(text)
-    if subj:
-        return jsonify({"ok": True, "source": "memory", "response": obj})
+    # 10–15% chance to go cheeky for style
+    if random.random() < 0.15:
+        return "cheeky"
+    return "calm"
 
     
+        
 
-    # NATURAL-LANGUAGE SAVE (e.g., "Pams husband is Rickey")
-    triplet = parse_assertion(text)
-    if triplet:
-        subj, rel, obj = triplet
-        try:
-            ok, msg = memory.save_fact(subj, rel, obj)
-        except Exception as e:
-            logger.error(f"Save via assertion error: {e}")
-            return jsonify({"ok": False, "source": "memory/save", "response": f"Save error: {e}"})
-        if ok:
-            saved_line = (
-                f"Got it — I’ll remember that {subj}'s {rel} is "
-                f"{_join_list(obj) if isinstance(obj, list) else obj}."
-            )
-            return jsonify({"ok": True, "source": "memory/save", "response": saved_line})
-        else:
-            return jsonify({"ok": False, "source": "memory/save", "response": msg})
+# -------------------------------------------------------------------------------------------
+# Routes
+# -------------------------------------------------------------------------------------------
+# 3️⃣ Safe tone detection (only if text and function exist)
+tone = None
+try:
+    if 'text' in locals():
+        tone = detect_emotion_and_tone(text)
+except Exception as e:
+    print(f"[Tone Detection Error Ignored] {e}")
 
-    # QUESTION LOOKUP
-    sr = parse_subject_relation(text)
-    if sr:
-        subj, rel = sr
 
-        # Pets: smart consolidation across multiple keys
-        ans = None
-        if rel == "pet":
-            ans = pet_answer(subj)
-        if ans is None:
-            ans = lookup_with_variants(subj, rel)
 
-        ans_text = coerce_answer_to_text(ans, subj, rel)
-        if ans_text:
-            is_group_rel = rel in {"children", "siblings", "favorite restaurants", "favorite foods", "schools attended", "raised by", "pet"}
-            is_list_ans = isinstance(ans, (list, tuple)) and not isinstance(ans, str)
-            fluent = ans_text if (is_group_rel or is_list_ans) else _rewrite_cached(ans_text)
-            return jsonify({"ok": True, "source": "memory/lookup", "response": fluent})
 
-    # fallback
-    return jsonify({
-        "ok": False,
-        "source": "fallback",
-        "response": "I don’t have that yet. Try: “Pam birthday”, “Pam siblings”, or save a fact like “Pam’s mother is Esther.”"
-    })
-
-# =============================================================================
-# Dev server
-# =============================================================================
-
-from flask import request, jsonify
-from knowledgefeed import KnowledgeFeed
-from soulnode_memory import SoulNodeMemory
-
-# Global memory instance
-MEM = SoulNodeMemory("Ty")
-
-@app.post("/knowledge/reindex")
-def knowledge_reindex():
-    """Re-ingest all .md/.txt files in knowledge/ into memory."""
-    count = load_folder("knowledge", MEM)
-    return jsonify({"ok": True, "ingested": count})
-
-@app.get("/knowledge/test")
-def knowledge_test():
-    """Quick sanity check recall."""
-    return jsonify({
-        "pam_child": MEM.ask("Pam", "child"),
-        "ty_parent": MEM.ask("Ty", "parent")
-    })
-
-@app.get("/knowledge/query")
-def knowledge_query():
-    """Ask memory with subject + relation via query string."""
-    subject = request.args.get("subject")
-    relation = request.args.get("relation")
-    if not subject or not relation:
-        return jsonify({"ok": False, "error": "Please provide subject and relation"}), 400
-
-    answer = MEM.ask(subject, relation)
-    return jsonify({
-        "ok": True,
-        "subject": subject,
-        "relation": relation,
-        "answer": answer
-    })
-
-import os
-from datetime import datetime
-
-@app.get("/assistant/checkin")
-def assistant_checkin():
-    """
-    Minimal morning brief built from memory + knowledge folder.
-    Safe if something's missing.
-    """
-    # facts we care about (use what we have; None if absent)
-    pam_child = MEM.ask("Pam", "child")
-    ty_parent = MEM.ask("Ty", "parent")
-
-    # how many facts in memory
-    fact_count = len(MEM.facts)
-
-    # how many .md/.txt files in knowledge/
-    note_files = 0
-    note_lines = 0
+        
+        
+@app.get("/")
+def home():
     try:
-        for root, _, files in os.walk("knowledge"):
-            for fn in files:
-                if fn.lower().endswith((".md", ".txt")):
-                    note_files += 1
-                    try:
-                        with open(os.path.join(root, fn), "r", encoding="utf-8") as f:
-                            note_lines += sum(1 for _ in f)
-                    except Exception:
-                        pass
+        return render_template("index.html")
     except Exception:
-        pass
-
-    brief = [
-        f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        f"Knowledge: {note_files} note file(s), {note_lines} line(s) scanned",
-        f"Memory size: {fact_count} fact(s)",
-        f"Family check: Pam’s child -> {pam_child or 'unknown'} / Ty’s parent -> {ty_parent or 'unknown'}",
-        "Next actions:",
-        "- Add one new fact line to knowledge/family_facts.md",
-        "- Hit /knowledge/reindex to ingest",
-        "- Ask /knowledge/query?subject=...&relation=...",
-    ]
-
-    return jsonify({"ok": True, "brief": brief})
-
-@app.post("/knowledge/add")
-def knowledge_add():
-    """
-    Add one fact directly into memory.
-    Body JSON: {"subject": "...", "relation": "...", "object": "..."}
-    """
-    try:
-        data = request.get_json(force=True) or {}
-    except Exception:
-        return jsonify({"ok": False, "error": "Invalid JSON"}), 400
-
-    subject = (data.get("subject") or "").strip()
-    relation = (data.get("relation") or "").strip()
-    obj = data.get("object")
-
-    ok, msg = MEM.save_fact(subject, relation, obj)
-    status = 200 if ok else 400
-    return jsonify({"ok": ok, "message": msg, "subject": subject, "relation": relation, "object": obj}), status
-
-# --- Natural-language ask -----------------------------------------------------
-import re
-
-# Name pattern (letters, spaces, dashes, apostrophes, periods)
-_NAME = r"[A-Za-z][A-Za-z\-\.' ]+"
-
-# Relations: normalize synonyms; some map to multiple candidates (e.g., spouse)
-_REL_MAP = {
-    "mom": "mother",
-    "mother": "mother",
-    "dad": "father",
-    "father": "father",
-    "kid": "child",
-    "child": "child",
-    "children": "child",
-    "son": "child",
-    "daughter": "child",
-    "parent": "parent",
-    "parents": "parent",
-    "husband": "husband",
-    "wife": "wife",
-    "spouse": ["husband", "wife"],
-}
-
-_PATTERNS = [
-    # "who/what is/was X's Y?"
-    re.compile(
-        rf"^(?:who|what)\s+(?:is|was|are|'s)\s+(?P<subj>{_NAME})\s*(?:'s|s')\s+(?P<rel>[A-Za-z]+)\s*\?$",
-        re.IGNORECASE,
-    ),
-    # "who/what is/was the Y of X?"
-    re.compile(
-        rf"^(?:who|what)\s+(?:is|was|are)\s+the\s+(?P<rel>[A-Za-z]+)\s+of\s+(?P<subj>{_NAME})\s*\?$",
-        re.IGNORECASE,
-    ),
-]
-
-def _norm_name(s: str) -> str:
-    return (s or "").strip()
-
-def _relation_candidates(rel: str):
-    base = (rel or "").strip().lower()
-    mapped = _REL_MAP.get(base, base)
-    return mapped if isinstance(mapped, list) else [mapped]
-
-def _parse_question(q: str):
-    if not q:
-        return None
-    text = q.strip()
-    # ensure it ends with a question mark for our patterns
-    if not text.endswith("?"):
-        text = text + "?"
-    for rx in _PATTERNS:
-        m = rx.match(text)
-        if m:
-            subj = _norm_name(m.group("subj"))
-            rel = (m.group("rel") or "").strip().lower()
-            return subj, rel
-    return None # not understood
+        return "SoNo server is running."
 
 @app.get("/ask")
-def ask_nl():
-    """
-    Natural-language ask:
-      /ask?q=Who%20is%20Kobe's%20parent?
-      /ask?q=Who%20is%20the%20child%20of%20Pam?
-      /ask?q=Who%20is%20Ty's%20mom?
-    """
-    q = request.args.get("q") or request.args.get("question")
-    parsed = _parse_question(q)
-    if not parsed:
-        return jsonify({"ok": False, "error": "Could not parse question.", "q": q}), 400
+def ask_get_hint():
+    return jsonify({"ok": True, "hint": "POST JSON to /ask with {\"text\": \"...\", \"profile\": \"ty|pam\"}"}), 200
 
-    subj, rel_raw = parsed
-    candidates = _relation_candidates(rel_raw)
 
-    answers = []
-    for rel in candidates:
-        ans = MEM.ask(subj, rel)
-        if ans is not None:
-            answers.append(ans)
+@app.post("/mem/import")
+def mem_import():
+    data = request.get_json(silent=True) or {}
+    mem = data.get("memory")
+    if not isinstance(mem, dict):
+        return jsonify({"ok": False, "error": "Provide JSON {\"memory\": {...}}"}), 400
+    try:
+        for sub, rels in mem.items():
+            if not isinstance(rels, dict): continue
+            for rel, val in rels.items():
+                mem_remember(sub, rel, str(val))
+        return jsonify({"ok": True, "imported": sum(len(v) for v in mem.values())})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Import failed: {e}"}), 500
 
-    # Deduplicate while preserving order (in case spouse returns both)
-    seen = set()
-    answers = [a for a in answers if not (a in seen or seen.add(a))]
+@app.get("/healthz")
+def healthz():
+    return jsonify({"ok": True, "status": "up"})
 
-    return jsonify({
-        "ok": True,
-        "q": q,
-        "subject": subj,
-        "parsed_relation": rel_raw,
-        "tried_relations": candidates,
-        "answer": (answers[0] if answers else None),
-        "answers": answers, # list form, may be empty
-    })
-
-@app.get("/ask/demo")
-def ask_demo():
-    """Run a small suite of natural-language questions in one shot."""
-    qs = [
-        "Who is Kobe's parent?",
-        "Who is the child of Pam?",
-        "Who is Ty's mom?",
-        "Who is Pam's spouse?",
-    ]
+# Quick regression checks
+GOLDEN_CASES: List[Tuple[str, str]] = [
+    ("who are you", "identity"),
+    ("what's your purpose", "identity"),
+    ("my comfort snack is oranges", "teach"),
+    ("what's my snack", "memory"),
+    ("Pam’s comfort show is Sanford and Son", "teach"),
+    ("what's her comfort show", "memory"),
+    ("tell me something about pam", "memory"),
+    ("actually hometown is los angeles", "teach"),
+    ("what's her hometown", "memory"),
+]
+@app.get("/tests/smoke")
+def tests_smoke():
     results = []
-    for q in qs:
-        r = app.test_client().get("/ask", query_string={"q": q})
-        try:
-            results.append({"q": q, "resp": r.get_json()})
-        except Exception:
-            results.append({"q": q, "resp": {"ok": False, "error": "Invalid response"}})
-    return jsonify({"ok": True, "count": len(results), "results": results})
+    for q, expected in GOLDEN_CASES:
+        r = handle_question(q, profile="ty")
+        results.append({"q": q, "got": r.get("source"), "ok": (r.get("source")==expected)})
+    passed = sum(1 for r in results if r["ok"])
+    return jsonify({"ok": True, "passed": passed, "total": len(results), "results": results})
 
-    from datetime import datetime
-
-
-    # last updated time (ISO string) if any
-    def _to_dt(s):
-        try:
-            # strip trailing Z if present
-            s = (s or "").rstrip("Z")
-            return datetime.fromisoformat(s)
-        except Exception:
-            return None
-
-    last_updated = None
-    for r in recs:
-        dt = _to_dt(r.get("updated_at"))
-        if dt and (last_updated is None or dt > last_updated):
-            last_updated = dt
-
-    # small histogram of relations (top 5)
-    rel_counts = {}
-    for r in recs:
-        rel = (r.get("relation") or "").strip().lower()
-        if not rel:
-            continue
-        rel_counts[rel] = rel_counts.get(rel, 0) + 1
-    top_relations = sorted(rel_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-
-    return jsonify({
-        "ok": True,
-        "totals": {
-            "facts": total_facts,
-            "unique_subjects": len(subjects),
-            "unique_relations": len(relations),
-        },
-        "top_relations": [{"relation": k, "count": v} for k, v in top_relations],
-        "last_updated": (last_updated.isoformat() + "Z") if last_updated else None,
-    })
-
-    # --- Knowledge watch: only reindex when note files change --------------------
-import threading, time, os
-from typing import Dict, Tuple
-
-_WATCH_ON = False
-_WATCH_THREAD = None
-_WATCH_SNAPSHOT: Dict[str, float] = {} # path -> mtime
-_WATCH_INTERVAL_SEC = 60 # check every 60s
-_WATCH_FOLDER = "knowledge"
-
-def _snapshot_folder(root: str) -> Dict[str, float]:
-    snap = {}
-    for dirpath, _, files in os.walk(root):
-        for fn in files:
-            if not fn.lower().endswith((".md", ".txt")):
-                continue
-            fp = os.path.join(dirpath, fn)
-            try:
-                snap[fp] = os.path.getmtime(fp)
-            except Exception:
-                pass
-    return snap
-
-def _has_changes(prev: Dict[str, float], curr: Dict[str, float]) -> bool:
-    if prev.keys() != curr.keys():
-        return True
-    for k, v in curr.items():
-        if prev.get(k) != v:
-            return True
-    return False
-
-def _watch_loop():
-    global _WATCH_ON, _WATCH_SNAPSHOT
-    # initial snapshot
+@app.route("/mem/remember", methods=["POST"])
+def mem_remember():
+    """Add or update a memory fact."""
     try:
-        _WATCH_SNAPSHOT = _snapshot_folder(_WATCH_FOLDER)
-    except Exception:
-        _WATCH_SNAPSHOT = {}
-    while _WATCH_ON:
-        try:
-            time.sleep(_WATCH_INTERVAL_SEC)
-            curr = _snapshot_folder(_WATCH_FOLDER)
-            if _has_changes(_WATCH_SNAPSHOT, curr):
-                # Only reindex when files were added/removed/modified
-                count = load_folder(_WATCH_FOLDER, MEM)
-                _WATCH_SNAPSHOT = curr
-                print(f"[watch] changes detected → ingested: {count}")
-        except Exception as e:
-            # keep the loop alive; log and continue
-            print(f"[watch] error: {e}")
+        data = request.get_json(force=True)
+        subject = data.get("subject", "").strip()
+        relation = data.get("relation", "").strip()
+        value = data.get("value", "").strip()
 
-@app.post("/knowledge/watch/start")
-def knowledge_watch_start():
-    """Begin watching the knowledge folder for changes."""
-    global _WATCH_ON, _WATCH_THREAD
-    if _WATCH_ON:
-        return jsonify({"ok": True, "message": "already running"})
-    _WATCH_ON = True
-    _WATCH_THREAD = threading.Thread(target=_watch_loop, daemon=True)
-    _WATCH_THREAD.start()
-    return jsonify({"ok": True, "message": "watch started", "interval_seconds": _WATCH_INTERVAL_SEC})
+        if not all([subject, relation, value]):
+            return jsonify({"ok": False, "error": "Missing subject, relation, or value"}), 400
 
-@app.post("/knowledge/watch/stop")
-def knowledge_watch_stop():
-    """Stop watching the knowledge folder."""
-    global _WATCH_ON
-    _WATCH_ON = False
-    return jsonify({"ok": True, "message": "watch stopped"})
+        # Clean phrasing
+        for field in ["subject", "relation", "value"]:
+            if isinstance(data.get(field), str):
+                data[field] = (
+                    data[field]
+                    .strip()
+                    .lower()
+                    .replace("that ", "")
+                    .replace(" is ", " ")
+                    .replace(" my ", " ")
+                    .replace("’", "'")
+                    .replace("’s", "'s")
+                )
 
-@app.get("/knowledge/watch/status")
-def knowledge_watch_status():
-    """Report whether watch is running and last snapshot info."""
-    return jsonify({
-        "ok": True,
-        "running": _WATCH_ON,
-        "files_tracked": len(_WATCH_SNAPSHOT),
-        "interval_seconds": _WATCH_INTERVAL_SEC
-    })
+        subject = data.get("subject")
+        relation = data.get("relation")
+        value = data.get("value")
 
-@app.post("/knowledge/watch/ping")
-def knowledge_watch_ping():
-    """Force an immediate rescan of the knowledge folder without waiting for the interval."""
-    global _WATCH_SNAPSHOT
-    try:
-        curr = _snapshot_folder(_WATCH_FOLDER)
-        if _has_changes(_WATCH_SNAPSHOT, curr):
-            count = load_folder(_WATCH_FOLDER, MEM)
-            _WATCH_SNAPSHOT = curr
-            return jsonify({"ok": True, "message": f"changes detected → ingested {count}", "files": len(curr)})
+        # --- detect duplicate before saving ---
+        existing = memory.memory.get(subject, {}).get(relation, [])
+        is_duplicate = value.lower() in [str(v).lower() for v in existing]
+
+        memory.remember(subject, relation, value)
+
+        if is_duplicate:
+            msg = f"⚠️ Duplicate ignored: {subject} → {relation}: {value}"
         else:
-            return jsonify({"ok": True, "message": "no changes detected", "files": len(curr)})
+            msg = f"✅ Remembered {subject} → {relation}: {value}"
+
+        return jsonify({"ok": True, "message": msg})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)})
+        print(f"[MEM ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
     
-    # === BEGIN Voice + Talk block (SoNo v3.10 – full) ===========================
-from flask import request, jsonify
-import re, time
-from datetime import datetime
-from pathlib import Path
+        # --------------------------------------------------------
+# Emotion + Natural Response Layer
+# --------------------------------------------------------
 
-# --- Safe adapters to your existing modules ---------------------------------
-# Memory adapter: tries soulnode_memory first, otherwise keeps a tiny in-proc fallback
+# quick emotion keyword map
+EMOTION_RESPONSES = {
+    "happy": "That’s good energy, Ty. Keep that momentum — that’s when breakthroughs show up.",
+    "tired": "You’ve been grinding hard, Ty. Take a breath before you burn out — progress still counts when you rest.",
+    "angry": "I hear the frustration, Ty. Let’s channel it into building, not burning out.",
+    "sad": "That one hits deep. Remember you’re building a future that honors your past.",
+    "focused": "Locked in, I like it. Let’s execute step by step.",
+    "motivated": "Stay on that wave — this is where you start separating from the pack.",
+    "miss": "I know that feeling hits deep. You’ve been carrying your loved ones through every build and every move you make."
+}
 
 
-# GPT adapter: we don’t need the LLM for this deterministic test suite, but if your
-# gpt-logic.py exposes something you want to use later, you can wire it here.
-try:
-    import gpt_logic as GPT # your file: gpt-logic.py
-except Exception:
-    GPT = None
-
-# TTS adapter: expects a tts_engine.py with speak()/generate()/synthesize()/tts()
-try:
-    import tts_engine as TTS # your file: tts_engine.py
-except Exception:
-    TTS = None
-
-# --- Minimal in-memory fallback (only used if soulnode_memory import fails) --
-_FALLBACK_MEM = {"Ty": {}}
-
-def _mem_save(subject: str, relation: str, obj: str):
-    if MEM and hasattr(MEM, "save_fact"):
-        return MEM.save_fact(subject, relation, obj)
-    _FALLBACK_MEM.setdefault(subject, {})[relation] = obj
-    return {"ok": True, "subject": subject, "relation": relation, "object": obj}
-
-def _mem_get(subject: str, relation: str):
-    if MEM and hasattr(MEM, "recall_fact"):
-        # expected to return string or None
-        return MEM.recall_fact(subject, relation)
-    return _FALLBACK_MEM.get(subject, {}).get(relation)
-
-# --- Helpers ----------------------------------------------------------------
-def _clean_obj(text: str) -> str:
-    """Normalize quotes/spacing and strip stray unmatched quotes at edges."""
-    if not text:
-        return text
-    t = text.strip().strip(" '\"“”‘’")
-    t = t.replace("“", "\"").replace("”", "\"").replace("‘", "'").replace("’", "'")
-    # remove single unmatched leading/trailing quote
-    if (t.startswith("'") and not t.endswith("'")) or (t.startswith('"') and not t.endswith('"')):
-        t = t[1:]
-    if (t.endswith("'") and not t.startswith("'")) or (t.endswith('"') and not t.startswith('"')):
-        t = t[:-1]
-    return t.strip()
-
-def _tts_outfile():
-    ts = str(int(time.time() * 1000))
-    Path("static/tts").mkdir(parents=True, exist_ok=True)
-    return f"static/tts/{ts}.mp3", f"/static/tts/{ts}.mp3"
-
-def _tts_try_speak(text: str):
-    if not TTS:
-        return {"ok": False, "error": "TTS not configured"}
-    # Try the most common signatures in order
-    out_path, public_url = _tts_outfile()
+# --------------------------------------------------------
+# ---------- AUTO INTENT + PERSONALITY + PERSISTENCE ----------
+@app.route("/ask", methods=["POST"])
+def ask():
     try:
-        if hasattr(TTS, "speak"):
-            TTS.speak(text=text, out_path=out_path) # our earlier adapter supports out_path
-            return {"ok": True, "audio_url": public_url}
-    except TypeError:
-        # Fallback to speak(text, out_dir=...) signature
-        try:
-            TTS.speak(text=text, out_dir="static/tts")
-            return {"ok": True, "audio_url": public_url}
-        except Exception as e:
-            pass
-    except Exception as e:
-        pass
-    # Other common names
-    for fn in ("generate", "synthesize", "tts"):
-        if hasattr(TTS, fn):
-            try:
-                getattr(TTS, fn)(text=text, out_path=out_path)
-                return {"ok": True, "audio_url": public_url}
-            except Exception:
-                continue
-    return {"ok": False, "error": "No compatible TTS function found on tts_engine (expected speak/generate/synthesize/tts)."}
+        data = request.get_json(silent=True)
+        text = data.get("text", "").strip()
 
-# --- Core talk route --------------------------------------------------------
-@app.route("/talk", methods=["POST"])
-def talk():
-    """
-    Deterministic voice logic that passes the v3.10 test suite:
-    - TEACH facts ("SoNo, remember that Ty’s ... is ...")
-    - Focused fact (one-word style)
-    - Blend (EC + coffee)
-    - Loose recall (drink/cafe)
-    - Pam draft uses workout
-    - Framers: kids/check-in/nudge
-    - Miss guard for favorite song (ask to teach)
-    - Tone+mirror test (no fluff, allow 'bullshit' token)
-    - Long grounding paragraph (EC + coffee + workout)
-    - Intro + optional TTS (audio_url)
-    """
-    try:
-        data = request.get_json(force=True, silent=True) or {}
-    except Exception:
-        data = {}
-    q = (data.get("q") or "").strip()
-    mode_hint = (data.get("mode") or "").strip().lower()
-    speak = bool(data.get("speak"))
+        if not text:
+            return jsonify({"ok": False, "error": "Missing text"}), 400
 
-    lowq = q.lower()
+        # ----- INTENT DETECTION -----
+        lower = text.lower()
+        intent = None
+        subj, rel, val = None, None, None
 
-    out = {"ok": True, "model": "gpt-5"} # keep parity with your logs
+        if lower.startswith("remember "):
+            intent = "remember"
+            parts = lower.replace("remember ", "").split(" is ")
+            if len(parts) == 2:
+                left, val = parts
+                if "my " in left:
+                    rel = left.replace("my ", "").strip()
+                    subj = "ty"
+        elif lower.startswith("what is"):
+            intent = "recall"
 
-    # ---------------------- TEACH -------------------------------------------
-    # Pattern: "SoNo, remember that Ty's/ Ty’s <relation> is <object>."
-    teach_match = re.match(
-        r"^\s*(sono,\s*remember\s+that\s+ty[’']?s\s+)(?P<rel>[^.]+?)\s+is\s+(?P<obj>.+?)\s*$",
-        q, flags=re.IGNORECASE
-    )
-    if teach_match:
-        relation_raw = teach_match.group("rel").strip().lower()
-        obj_raw = teach_match.group("obj").strip()
-        # map a few friendly variants to canonical relations
-        rel_map = {
-            "emergency contact": "emergency contact",
-            "coffee order": "coffee order",
-            "favorite workout": "favorite workout",
-            "favourite workout": "favorite workout",
-            "favorite song": "favorite song",
-            "favourite song": "favorite song",
-        }
-        relation = rel_map.get(relation_raw, relation_raw)
-        obj = _clean_obj(obj_raw)
-        saved = _mem_save("Ty", relation, obj)
-        out.update({
-            "mode": "teach",
-            "subject": "Ty",
-            "relation": relation,
-            "object": obj,
-            "saved": bool(saved.get("ok")),
-            "reply": f"Saved: Ty | {relation} | {obj}."
-        })
-        return jsonify(out)
+        # ----- REMEMBER -----
+        if intent == "remember" and subj and rel and val:
+            memory.remember(subj, rel, val)
+            memory._safe_write_json(memory.runtime_path, memory.memory) # 🔒 Persistence save
+            return jsonify({
+                "ok": True,
+                "answer": f"Got it. I’ll remember your {rel} is {val}."
+            })
 
-    # ---------------------- FOCUSED FACT -----------------------------------
-    if mode_hint == "focused":
-        if "state ty" in lowq and "emergency contact" in lowq:
-            ec = _mem_get("Ty", "emergency contact") or "Unknown"
-            out.update({"mode": "direct", "reply": f"{ec}."})
-            return jsonify(out)
-
-    # ---------------------- BLEND (EC + coffee) ----------------------------
-    if ("who is my emergency contact" in lowq) and ("what coffee" in lowq or "coffee do i" in lowq):
-        ec = _mem_get("Ty", "emergency contact") or "Unknown"
-        coffee = _mem_get("Ty", "coffee order") or "Unknown"
-        out.update({"mode": "direct", "reply": f"Your emergency contact is {ec}, and you usually order {coffee}."})
-        return jsonify(out)
-
-    # ---------------------- LOOSE RECALL (drink/cafe) -----------------------
-    if ("drink order" in lowq) or ("cafe" in lowq) or ("go to order" in lowq) or ("go-to order" in lowq):
-        coffee = _mem_get("Ty", "coffee order") or "Unknown"
-        out.update({"mode": "direct", "reply": f"{coffee}."})
-        return jsonify(out)
-
-    # ---------------------- PAM DRAFT (uses workout) ------------------------
-    if "text pam" in lowq and "after my workout" in lowq and "draft" in lowq:
-        wo = _mem_get("Ty", "favorite workout") or "your workout"
-        out.update({
-            "mode": "direct",
-            "reply": f"Hey Pam, I’ll call you after {wo}—should be within the hour."
-        })
-        return jsonify(out)
-
-    # ---------------------- FRAMERS ----------------------------------------
-    if "give me 4 bullets, one per kid, for tonight" in lowq:
-        out.update({
-            "mode": "framer",
-            "reply": "• Ivy: 30-min arts mini-project (markers + paper). End with a quick show-and-tell.\n"
-                     "• TJ: energy outlet—20 jumps + 10 pushups, then pick tomorrow’s outfit.\n"
-                     "• Kobe: dance break to one song; then read 2 pages with you.\n"
-                     "• Bonus: 5-min group gratitude—one win each, then bedtime prep."
-        })
-        return jsonify(out)
-
-    if "what matters for me right now" in lowq and "short check-in" in lowq:
-        out.update({
-            "mode": "framer",
-            "reply": "• One win: pick a 10-minute task you’ll finish first.\n"
-                     "• Body: water + stand + 3 breaths.\n"
-                     "• Admin: confirm tomorrow’s first move.\n"
-                     "• Family: quick text to Pam if needed.\n"
-                     "Next: start the 10-minute task now."
-        })
-        return jsonify(out)
-
-    if "nudge me to reset my evening" in lowq:
-        out.update({
-            "mode": "framer",
-            "reply": "Set a 10-minute timer: clear your space, water up, and close the smallest open loop."
-        })
-        return jsonify(out)
-
-    # ---------------------- FAVORITE SONG (guard + recall) ------------------
-    if "what’s my favorite song" in lowq or "what's my favorite song" in lowq:
-        fav = _mem_get("Ty", "favorite song")
-        if fav:
-            out.update({"mode": "direct", "reply": fav})
-        else:
-            out.update({"mode": "gpt", "reply": "I don’t have your favorite song saved yet. Tell me the title and artist, and I’ll remember it."})
-        return jsonify(out)
-
-    # ---------------------- TONE + MIRROR TEST ------------------------------
-    if "give me gut check truth" in lowq and "nudge me" in lowq:
-        # mirror tone token if user explicitly allowed the word
-        use_bs = ("bullshit" in lowq)
-        bs_tail = " (bullshit)" if use_bs else ""
-        out.update({
-            "mode": "framer",
-            "reply": f"Gut-check truth: Set a 10-minute timer: clear your space, water up, and close the smallest open loop.{bs_tail}"
-        })
-        return jsonify(out)
-
-    # ---------------------- GROUNDING PARAGRAPH -----------------------------
-    if "in one short paragraph" in lowq and "emergency contact" in lowq and "coffee order" in lowq and "favorite workout" in lowq:
-        ec = _mem_get("Ty", "emergency contact") or "Unknown"
-        coffee = _mem_get("Ty", "coffee order") or "Unknown"
-        wo = _mem_get("Ty", "favorite workout") or "Unknown"
-        out.update({
-            "mode": "direct",
-            "reply": f"Quick reset: your emergency contact is {ec}; your coffee order is {coffee}; and your updated favorite workout is {wo}."
-        })
-        return jsonify(out)
-
-    # ---------------------- INTRO + (optional) TTS --------------------------
-    if "introduce yourself briefly" in lowq:
-        intro = "I’m SoNo—your AI co-pilot. Steady voice, short useful answers, and I remember your real facts so I can help quickly."
-        out["mode"] = "direct"
-        out["reply"] = intro
-        if speak:
-            tts = _tts_try_speak(intro)
-            if tts.get("ok"):
-                out["audio_url"] = tts.get("audio_url")
+        # ----- RECALL -----
+        if intent == "recall":
+            answer = memory.search(text)
+            if answer:
+                tone = detect_emotion_and_tone(text) if "detect_emotion_and_tone" in globals() else None
+                if tone == "motivational":
+                    answer = f"{answer.capitalize()}. Stay sharp, Commander — you’re leveling up."
+                elif tone == "reflective":
+                    answer = f"{answer.capitalize()}. Take a breath — reflection is fuel."
+                elif tone == "cheeky":
+                    answer = f"{answer.capitalize()}. You knew I’d remember that 😏"
+                elif tone == "focus":
+                    answer = f"{answer.capitalize()}. Locked in and focused."
+                return jsonify({"ok": True, "answer": answer})
             else:
-                out["tts_error"] = tts.get("error", "TTS not configured")
-        return jsonify(out)
+                return jsonify({
+                    "ok": False,
+                    "answer": "I don’t know that yet. Try telling me by saying: 'Remember my ___ is ___.'"
+                })
 
-    # ---------------------- DEFAULT (fall back) ------------------------------
-    # If nothing matched, be honest and minimal (keeps tests deterministic)
-    out.update({"mode": "gpt", "reply": "Noted."})
-    return jsonify(out)
-# === END Voice + Talk block ================================================
+        # ----- FALLBACK -----
+        return jsonify({
+            "ok": False,
+            "answer": "Try saying: 'Remember my dream car is ___' or 'What is my dream car?'"
+        })
+
+    except Exception as e:
+        print(f"[app] /ask error: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
     
+# -------------------------------
+#  Voice / TTS (11Labs)
+# -------------------------------
+# ---- ElevenLabs Voice Setup ----
+from flask import Response
+import os
 
-# ============================= KNOWLEDGE: SoNo ==============================
-from pathlib import Path
-from flask import request, jsonify
-from knowledgefeed import KnowledgeFeed
+@app.route("/tts", methods=["POST"])
+def tts():
+    data = request.get_json(silent=True)
+    text = data.get("text", "").strip()
 
-KNOW_DIR = Path(os.getenv("SONO_KNOWLEDGE_DIR", "knowledge"))
-KNOW_DIR.mkdir(parents=True, exist_ok=True)
+    # Detect emotional tone from the text
+    tone = detect_emotion_and_tone(text)
+    print(f"[TTS] Detected emotion: {tone}")
 
-@app.post("/knowledge/ingest")
-def knowledge_ingest():
+    if not text:
+        return jsonify({"ok": False, "error": "Missing text"}), 400
+
     try:
-        payload = request.get_json(silent=True) or {}
-        paths = payload.get("paths") or []
-        targets = [Path(p) for p in paths] if paths else [KNOW_DIR]
+        api_key = os.getenv("ELEVENLABS_API_KEY")
 
-        # NEW CODE using KnowledgeFeed
-        kf = KnowledgeFeed(MEM)
-        result = kf.ingest_paths(targets)
+        if NEW_SDK:
+            client = ElevenLabs(api_key=api_key)
+            audio = client.text_to_speech.convert(
+                voice_id="Rachel",
+                model_id="eleven_multilingual_v2",
+                text=text
+            )
+        else:
+            audio = generate(text=text, voice="Rachel", api_key=api_key)
 
-        return jsonify({"ok": True, "result": result})
+        return Response(audio, mimetype="audio/mpeg")
+
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)})
-
-@app.get("/knowledge/stats")
-def knowledge_stats():
+        print(f"[TTS ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+    
+@app.route("/mem/sanitize", methods=["POST"])
+def mem_sanitize():
+    """Run a full sanitization sweep on all memory data."""
     try:
-        recs = getattr(MEM, "records", {})
-        subs = set()
-        rels = {}
-        for r in recs.values():
-            subs.add(str(r.get("subject","")).strip().lower())
-            rel = str(r.get("relation","")).strip().lower()
-            if not rel: 
-                continue
-            rels[rel] = rels.get(rel, 0) + 1
-        top_rel = [{"relation":k, "count":v} for k,v in sorted(rels.items(), key=lambda x: x[1], reverse=True)[:5]]
-        return jsonify({
-            "ok": True,
-            "totals": {
-                "facts": len(recs),
-                "unique_subjects": len(subs),
-                "unique_relations": len(rels),
-            },
-            "top_relations": top_rel,
-            "last_updated": __import__("datetime").datetime.utcnow().isoformat(timespec="seconds")+"Z"
-        })
+        memory.sanitize_all()
+        return jsonify({"ok": True, "message": "Memory sweep completed successfully."})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-# =========================== END KNOWLEDGE: SoNo ============================
-
- 
     
+# --------------------------------------------------------
+# Memory Diagnostics & Export Endpoints
+# --------------------------------------------------------
+
+@app.route("/mem/status", methods=["GET"])
+def mem_status():
+    """Return memory diagnostics and current stats."""
+    try:
+        total_subjects = len(memory.memory)
+        total_facts = sum(len(v) for v in memory.memory.values())
+        last_sweep = getattr(memory, "last_sweep", "N/A")
+        write_count = getattr(memory, "write_count", "N/A")
+
+        return jsonify({
+            "ok": True,
+            "summary": {
+                "subjects": total_subjects,
+                "facts": total_facts,
+                "write_count": write_count,
+                "last_sweep": last_sweep
+            }
+        })
+    except Exception as e:
+        print(f"[MEM STATUS ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/mem/export", methods=["GET"])
+def mem_export():
+    """Export current memory as a downloadable JSON file."""
+    try:
+        if not os.path.exists(memory.runtime_path):
+            return jsonify({"ok": False, "error": "Memory file not found"}), 404
+
+        return send_file(
+            memory.runtime_path,
+            as_attachment=True,
+            download_name="memory_store_backup.json",
+            mimetype="application/json"
+        )
+    except Exception as e:
+        print(f"[MEM EXPORT ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+    
+
+    
+@app.route("/admin/mode", methods=["GET"])
+def get_mode():
+    """Check current operating mode."""
+    return jsonify({"ok": True, "mode": MODE})
+
+
+
+# --------------------------------------------------------
+# Closed Test Activity Tracking
+# --------------------------------------------------------
+
+
+@app.route("/feedback", methods=["POST"])
+@track_activity("feedback")
+def feedback():
+    """Record feedback from closed testers."""
+    try:
+        data = request.get_json(force=True)
+        tester = data.get("tester", "unknown")
+        message = data.get("message", "")
+        rating = data.get("rating", "N/A")
+
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        entry = {"tester": tester, "message": message, "rating": rating, "timestamp": ts}
+
+        # --- WRITE TO DISK ---
+        log_path = os.path.join(os.path.dirname(__file__), "feedback_log.json")
+
+        if os.path.exists(log_path):
+            with open(log_path, "r", encoding="utf-8") as f:
+                logs = json.load(f)
+        else:
+            logs = []
+
+        logs.append(entry)
+        with open(log_path, "w", encoding="utf-8") as f:
+            json.dump(logs, f, indent=2)
+
+        print(f"[Feedback] ✅ Logged from {tester} at {ts}")
+        return jsonify({"ok": True, "message": "Feedback recorded."})
+    except Exception as e:
+        print(f"[FEEDBACK ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/tester/feedback", methods=["POST"])
+@track_activity("tester_feedback")
+def tester_feedback():
+    """Allow registered testers to post feedback."""
+    try:
+        data = request.get_json(force=True)
+        key = data.get("key", "").strip()
+        message = data.get("message", "")
+        rating = data.get("rating", "N/A")
+
+        # --- LOAD REGISTRY ---
+        reg_path = "tester_registry.json"
+        if not os.path.exists(reg_path):
+            return jsonify({"ok": False, "error": "Tester registry not found"}), 404
+        
+        # --- LOAD REGISTRY ---
+        reg_path = "tester_registry.json"
+        if not os.path.exists(reg_path):
+            return jsonify({"ok": False, "error": "Tester registry not found"}), 404
+
+        with open(reg_path, "r", encoding="utf-8") as f:
+            testers = json.load(f)
+
+        # Handle both dict and list formats
+        tester_name = None
+        if isinstance(testers, dict):
+            tester_name = testers.get(key)
+        elif isinstance(testers, list):
+            for t in testers:
+                if t.get("key", "").upper() == key.upper():
+                    tester_name = t.get("name")
+                    break
+
+
+        with open(reg_path, "r", encoding="utf-8") as f:
+            testers = json.load(f)
+
+        tester_name = testers.get(key, None)
+        if not tester_name:
+            return jsonify({"ok": False, "error": "Invalid tester key"}), 401
+
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        entry = {"tester": tester_name, "message": message, "rating": rating, "timestamp": ts}
+
+        # --- WRITE TO LOG ---
+        log_path = "feedback_log.json"
+        if os.path.exists(log_path):
+            with open(log_path, "r", encoding="utf-8") as f:
+                logs = json.load(f)
+        else:
+            logs = []
+
+        logs.append(entry)
+        with open(log_path, "w", encoding="utf-8") as f:
+            json.dump(logs, f, indent=2)
+
+        print(f"[Tester Feedback] ✅ Logged from {tester_name} at {ts}")
+        return jsonify({"ok": True, "message": f"Feedback recorded from {tester_name}."})
+    except Exception as e:
+        print(f"[TESTER FEEDBACK ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+    
+# --------------------------------------------------------
+# Closed Test Access & Tester Registry
+# --------------------------------------------------------
+import json, os
+from datetime import datetime
+
+TESTER_LOG_PATH = os.path.join("data", "tester_logs.json")
+MAX_TESTERS = 5
+ADMIN_KEY = "TYADMIN"
+
+# Utility: load tester data
+def load_testers():
+    if os.path.exists(TESTER_LOG_PATH):
+        with open(TESTER_LOG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"testers": {}, "logs": []}
+
+# Utility: save tester data
+def save_testers(data):
+    os.makedirs(os.path.dirname(TESTER_LOG_PATH), exist_ok=True)
+    with open(TESTER_LOG_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+# --------------------------------------------------------
+# Admin Command: Register Tester
+# --------------------------------------------------------
+@app.route("/tester/register", methods=["POST"])
+def register_tester():
+    try:
+        data = request.get_json(force=True)
+        admin_key = data.get("admin_key")
+        name = data.get("name")
+        key = data.get("key")
+
+        if admin_key != ADMIN_KEY:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 403
+
+        testers = load_testers()
+        if len(testers["testers"]) >= MAX_TESTERS:
+            return jsonify({"ok": False, "error": "Tester limit reached"}), 400
+
+        testers["testers"][key] = {"name": name, "joined": datetime.now().isoformat()}
+        save_testers(testers)
+        return jsonify({"ok": True, "message": f"Tester '{name}' registered with key {key}."})
+    except Exception as e:
+        print(f"[TESTER REGISTER ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+# --------------------------------------------------------
+# Tester Feedback Submission
+# --------------------------------------------------------
+@app.route("/tester/submit", methods=["POST"])
+def tester_submit():
+    try:
+        data = request.get_json(force=True)
+        key = data.get("key")
+        message = data.get("message")
+        rating = data.get("rating")
+
+        testers = load_testers()
+        tester_info = testers["testers"].get(key)
+        if not tester_info:
+            return jsonify({"ok": False, "error": "Invalid tester key"}), 403
+
+        log_entry = {
+            "tester": tester_info["name"],
+            "key": key,
+            "message": message,
+            "rating": rating,
+            "timestamp": datetime.now().isoformat()
+        }
+        testers["logs"].append(log_entry)
+        save_testers(testers)
+
+        return jsonify({"ok": True, "message": "Tester feedback logged successfully."})
+    except Exception as e:
+        print(f"[TESTER SUBMIT ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+# --------------------------------------------------------
+# Admin Command: View Tester Logs
+# --------------------------------------------------------
+@app.route("/tester/logs", methods=["GET"])
+def tester_logs():
+    try:
+        admin_key = request.args.get("admin_key")
+        if admin_key != ADMIN_KEY:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 403
+
+        testers = load_testers()
+        return jsonify({"ok": True, "logs": testers["logs"], "testers": testers["testers"]})
+    except Exception as e:
+        print(f"[TESTER LOGS ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+    
+    # --------------------------------------------------------
+# Closed Test Status Endpoint
+# --------------------------------------------------------
+# --------------------------------------------------------
+# Admin: Closed Test Status Overview
+# --------------------------------------------------------
+# --------------------------------------------------------
+# Admin: Closed Test Status Overview (Fixed JSON Formatting)
+# --------------------------------------------------------
+@app.route("/admin/test_status", methods=["GET"])
+def admin_test_status():
+    """Return summary of all feedback entries and tester activity (clean JSON)."""
+    try:
+        feedback_log = []
+        if os.path.exists("feedback_log.json"):
+            with open("feedback_log.json", "r", encoding="utf-8") as f:
+                feedback_log = json.load(f)
+
+        total_feedback = len(feedback_log)
+        testers = {}
+        latest_entry = None
+
+        if feedback_log:
+            latest_entry = feedback_log[-1]
+            for entry in feedback_log:
+                name = entry.get("tester", "Unknown")
+                testers[name] = testers.get(name, 0) + 1
+
+        summary_data = {
+            "total_testers": len(testers),
+            "total_feedback": total_feedback,
+            "tester_activity": testers,
+            "latest_entry": latest_entry
+        }
+
+        response = jsonify({
+            "ok": True,
+            "summary": summary_data
+        })
+        response.headers["Content-Type"] = "application/json"
+        return response
+
+    except Exception as e:
+        print(f"[ADMIN TEST STATUS ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+    
+# --------------------------------------------------------
+# Admin Dashboard View (Feedback Visualizer)
+# --------------------------------------------------------
+@app.route("/admin/dashboard", methods=["GET"])
+def admin_dashboard():
+    """Simple HTML dashboard to view feedback logs and tester stats."""
+    feedback_path = Path("feedback_log.json")
+    if not feedback_path.exists():
+        return "<h2>No feedback data yet.</h2>"
+
+    # Load feedback log
+    with open(feedback_path, "r", encoding="utf-8") as f:
+        logs = json.load(f)
+
+    # Build table
+    rows = ""
+    for entry in reversed(logs):  # newest first
+        rows += f"""
+        <tr>
+            <td>{entry.get('tester')}</td>
+            <td>{entry.get('message')}</td>
+            <td>{entry.get('rating')}</td>
+            <td>{entry.get('timestamp')}</td>
+        </tr>
+        """
+
+    html = f"""
+    <html>
+    <head>
+        <title>SoulNode Closed Test Dashboard</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background: #f9fafc;
+                margin: 40px;
+            }}
+            h1 {{
+                color: #222;
+            }}
+            table {{
+                border-collapse: collapse;
+                width: 100%;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            }}
+            th, td {{
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+                text-align: left;
+            }}
+            th {{
+                background: #0078d7;
+                color: white;
+            }}
+            tr:hover {{
+                background: #f1f1f1;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>🧠 SoulNode Closed Test Dashboard</h1>
+        <table>
+            <tr>
+                <th>Tester</th>
+                <th>Message</th>
+                <th>Rating</th>
+                <th>Timestamp</th>
+            </tr>
+            {rows}
+        </table>
+    </body>
+    </html>
+    """
+    return html
+
+
+# --------------------------------------------------------
+# Speech-to-Text Endpoint (Browser Mic → Text)
+# --------------------------------------------------------
+@app.route("/speech", methods=["POST"])
+def speech_to_text():
+    """
+    Accepts an uploaded audio file and returns transcribed text.
+    For now it just returns a dummy string until Whisper/other API wired in.
+    """
+    try:
+        if "audio" not in request.files:
+            return jsonify({"ok": False, "error": "No audio file uploaded"}), 400
+
+        file = request.files["audio"]
+        # Here you could hook in Whisper API or another STT service.
+        # For now we just fake a response so testers can see it work:
+        dummy_text = "This is a placeholder transcription from " + file.filename
+
+        return jsonify({"ok": True, "text": dummy_text})
+    except Exception as e:
+        print(f"[SPEECH ERROR] {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+
+    
+
+# --------------------------------------------------------
+# Flask Entry Point
+# --------------------------------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True, use_reloader=False)
+

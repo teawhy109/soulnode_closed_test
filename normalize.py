@@ -5,6 +5,20 @@ import unicodedata as ud
 
 # --- helpers -------------------------------------------------
 
+def normalize_text(text: str) -> str:
+    """
+    Clean up and normalize user input for consistent matching.
+    - Lowercases text
+    - Strips extra spaces
+    - Removes punctuation
+    """
+    if not text:
+        return ""
+    t = text.lower()
+    t = re.sub(r"[^a-z0-9\s]", "", t) # remove punctuation
+    t = re.sub(r"\s+", " ", t).strip() # collapse spaces
+    return t
+
 def _squash(s: str) -> str:
     """strip + collapse internal whitespace to single spaces"""
     return re.sub(r"\s+", " ", s.strip())
