@@ -973,7 +973,7 @@ def ask():
         # ----- REMEMBER -----
         if intent == "remember" and subj and rel and val:
             memory.remember(subj, rel, val)
-            memory._safe_write_json(memory.runtime_path, memory.memory) # 🔒 Persistence save
+            memory._safe_write_json(memory.runtime_path, memory.memory)
             return jsonify({
                 "ok": True,
                 "answer": f"Got it. I’ll remember your {rel} is {val}."
@@ -994,12 +994,26 @@ def ask():
                     answer = f"{answer.capitalize()}. Locked in and focused."
                 return jsonify({"ok": True, "answer": answer})
             else:
-                return jsonify({
-                    "ok": False,
-                    "answer": "I don’t know that yet. Try telling me by saying: 'Remember my ___ is ___.'"
-                })
+                # If memory has no match, fall through to GPT
+                intent = "gpt"
 
-        # ----- FALLBACK -----
+        # ----- GPT FALLBACK -----
+        if intent is None or intent == "gpt":
+            try:
+                response = _openai_client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[
+                        {"role": "system", "content": "You are SoulNode, an intelligent, emotionally aware AI built by Ty Butler."},
+                        {"role": "user", "content": text}
+                    ]
+                )
+                gpt_answer = response.choices[0].message.content.strip()
+                return jsonify({"ok": True, "answer": gpt_answer})
+            except Exception as gpt_error:
+                print("[GPT error]", gpt_error)
+                return jsonify({"ok": False, "error": str(gpt_error)}), 500
+
+        # ----- FINAL SAFETY FALLBACK -----
         return jsonify({
             "ok": False,
             "answer": "Try saying: 'Remember my dream car is ___' or 'What is my dream car?'"
@@ -1008,6 +1022,7 @@ def ask():
     except Exception as e:
         print(f"[app] /ask error: {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
     
 # -------------------------------
@@ -1020,7 +1035,7 @@ import os
 @app.route("/tts", methods=["POST"])
 def tts():
     data = request.get_json(silent=True)
-    text = data.get("text", "").strip()
+    text = (data.get("text") or data.get("prompt") or "").strip()
 
     # Detect emotional tone from the text
     tone = detect_emotion_and_tone(text)
