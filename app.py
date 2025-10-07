@@ -259,15 +259,28 @@ def answer_from_pam_memory(question: str, store) -> Optional[dict]:
 # ------------------------------------------------------------------------------
 
 # ---- Optional GPT (only used if OPENAI_API_KEY is set) ----
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-_openai_client = None
-if OPENAI_API_KEY:
-    try:
-        from openai import OpenAI
-        _openai_client = OpenAI(api_key=OPENAI_API_KEY)
-    except Exception as e:
-        print("OpenAI init error:", e)
+import os
+from dotenv import load_dotenv
+
+# Load environment variables (works locally and safely ignored in Render)
+load_dotenv()
+
+# Fetch API key and model
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+
+# Validate key
+if not OPENAI_API_KEY:
+    raise ValueError("Missing OPENAI_API_KEY — check Render Environment Variables or local .env file.")
+
+# Initialize OpenAI client
+try:
+    from openai import OpenAI
+    _openai_client = OpenAI(api_key=OPENAI_API_KEY)
+except Exception as e:
+    print("OpenAI init error:", e)
+    _openai_client = None
+
 
 # ---- Local modules (with safe fallbacks for utils) ----
 try:
