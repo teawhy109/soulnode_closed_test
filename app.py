@@ -950,6 +950,7 @@ def ask():
     try:
         data = request.get_json(silent=True)
         text = data.get("text", "").strip()
+        answer = None  # ✅ initialize early to avoid 'unbound variable'
 
         if not text:
             return jsonify({"ok": False, "error": "Missing text"}), 400
@@ -969,76 +970,33 @@ def ask():
                     subj = "ty"
         elif lower.startswith("what is"):
             intent = "recall"
-            
-        # ----- RECALL -----
-        if intent == "recall":
-            answer = memory.search(text)
-            if answer:
-                return jsonify({"ok": True, "answer": answer})
-            
-            # If no memory recall, fallback only AFTER checking GPT
-        if not answer:
-            print("[Memory] No local recall found — escalating to GPT.")
-            try:
-                if _openai_client:
-                    completion = _openai_client.chat.completions.create(
-                        model=OPENAI_MODEL,
-                        messages=[
-                            {"role": "system", "content": "You are SoulNode, Ty Butler’s AI co-pilot. Respond briefly and conversationally."},
-                            {"role": "user", "content": text}
-                        ]
-                    )
-                    gpt_answer = completion.choices[0].message.content.strip()
-                    return jsonify({"ok": True, "answer": gpt_answer})
-            except Exception as e:
-                print("[GPT fallback error]", e)
-
-
 
         # ----- REMEMBER -----
         if intent == "remember" and subj and rel and val:
             memory.remember(subj, rel, val)
             memory._safe_write_json(memory.runtime_path, memory.memory)
-            return jsonify({
-                "ok": True,
-                "answer": f"Got it. I’ll remember your {rel} is {val}."
-            })
+            return jsonify({"ok": True, "answer": f"Got it. I’ll remember your {rel} is {val}."})
 
         # ----- RECALL -----
         if intent == "recall":
             answer = memory.search(text)
             if answer:
-                tone = detect_emotion_and_tone(text) if "detect_emotion_and_tone" in globals() else None
-                if tone == "motivational":
-                    answer = f"{answer.capitalize()}. Stay sharp, Commander — you’re leveling up."
-                elif tone == "reflective":
-                    answer = f"{answer.capitalize()}. Take a breath — reflection is fuel."
-                elif tone == "cheeky":
-                    answer = f"{answer.capitalize()}. You knew I’d remember that 😏"
-                elif tone == "focus":
-                    answer = f"{answer.capitalize()}. Locked in and focused."
                 return jsonify({"ok": True, "answer": answer})
-            else:
-                # If memory has no match, fall through to GPT
-                intent = "gpt"
 
         # ----- GPT FALLBACK -----
-        if intent is None or intent == "gpt":
-            try:
-                response = _openai_client.chat.completions.create(
-                    model=OPENAI_MODEL,
-                    messages=[
-                        {"role": "system", "content": "You are SoulNode, an intelligent, emotionally aware AI built by Ty Butler."},
-                        {"role": "user", "content": text}
-                    ]
-                )
-                gpt_answer = response.choices[0].message.content.strip()
-                return jsonify({"ok": True, "answer": gpt_answer})
-            except Exception as gpt_error:
-                print("[GPT error]", gpt_error)
-                return jsonify({"ok": False, "error": str(gpt_error)}), 500
+        if not answer and _openai_client:
+            print("[Memory] No local recall found — escalating to GPT.")
+            completion = _openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are SoulNode, Ty Butler’s AI co-pilot. Respond briefly and conversationally."},
+                    {"role": "user", "content": text},
+                ],
+            )
+            gpt_answer = completion.choices[0].message.content.strip()
+            return jsonify({"ok": True, "answer": gpt_answer})
 
-        # ----- FINAL SAFETY FALLBACK -----
+        # ----- FINAL FALLBACK -----
         return jsonify({
             "ok": False,
             "answer": "Try saying: 'Remember my dream car is ___' or 'What is my dream car?'"
@@ -1047,6 +1005,7 @@ def ask():
     except Exception as e:
         print(f"[app] /ask error: {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
     
