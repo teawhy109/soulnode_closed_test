@@ -975,6 +975,24 @@ def ask():
             answer = memory.search(text)
             if answer:
                 return jsonify({"ok": True, "answer": answer})
+            
+            # If no memory recall, fallback only AFTER checking GPT
+        if not answer:
+            print("[Memory] No local recall found — escalating to GPT.")
+            try:
+                if _openai_client:
+                    completion = _openai_client.chat.completions.create(
+                        model=OPENAI_MODEL,
+                        messages=[
+                            {"role": "system", "content": "You are SoulNode, Ty Butler’s AI co-pilot. Respond briefly and conversationally."},
+                            {"role": "user", "content": text}
+                        ]
+                    )
+                    gpt_answer = completion.choices[0].message.content.strip()
+                    return jsonify({"ok": True, "answer": gpt_answer})
+            except Exception as e:
+                print("[GPT fallback error]", e)
+
 
 
         # ----- REMEMBER -----
