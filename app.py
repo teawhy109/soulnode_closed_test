@@ -997,6 +997,28 @@ def ask():
         # 🔹 Fallback
         else:
             intent = "general"
+            
+                        # 🧠 Fuzzy recall logic
+            from difflib import SequenceMatcher
+
+            possible = list(memory.facts.keys())
+            rels = [r for (s, r) in possible if s == subj]
+
+            best_match = None
+            best_ratio = 0.0
+            for r in rels:
+                ratio = SequenceMatcher(None, rel, r).ratio()
+                if ratio > best_ratio:
+                    best_match = r
+                    best_ratio = ratio
+
+            if best_match and best_ratio > 0.5:
+                answer = memory.get(subj, best_match)
+                print(f"[ASK ROUTE] ✅ Recall matched: {best_match} (ratio {best_ratio:.2f})")
+            else:
+                answer = None
+                print(f"[ASK ROUTE] ⚠️ No strong match for '{rel}' (best={best_match}, ratio={best_ratio:.2f})")
+
 
 
 
