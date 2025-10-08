@@ -960,16 +960,27 @@ def ask():
         intent = None
         subj, rel, val = None, None, None
 
-        if lower.startswith("remember "):
+        # --- INTENT PARSING ---
+        if lower.startswith("remember"):
             intent = "remember"
-            parts = lower.replace("remember ", "").split(" is ")
+            # Clean up phrasing like "remember that my" or "remember my"
+            body = lower.replace("remember", "", 1).strip()
+            parts = re.split(r"\bis\b", body, maxsplit=1)
             if len(parts) == 2:
                 left, val = parts
-                if "my " in left:
-                    rel = left.replace("my ", "").strip()
-                    subj = "ty"
+                left = left.replace("that", "").replace("my", "").strip()
+                subj = "ty"
+                rel = left
+                val = val.strip()
+                print(f"[ASK ROUTE] Entered remember branch: subj={subj}, rel={rel}, val={val}")
+
         elif lower.startswith("what is"):
             intent = "recall"
+            body = lower.replace("what is", "", 1).strip()
+            rel = body.replace("my", "").strip()
+            subj = "ty"
+            print(f"[ASK ROUTE] Entered recall branch: subj={subj}, rel={rel}")
+
 
         # ----- REMEMBER -----
         if intent == "remember" and subj and rel and val:
