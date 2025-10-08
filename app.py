@@ -969,6 +969,13 @@ def ask():
                     subj = "ty"
         elif lower.startswith("what is"):
             intent = "recall"
+            
+        # ----- RECALL -----
+        if intent == "recall":
+            answer = memory.search(text)
+            if answer:
+                return jsonify({"ok": True, "answer": answer})
+
 
         # ----- REMEMBER -----
         if intent == "remember" and subj and rel and val:
