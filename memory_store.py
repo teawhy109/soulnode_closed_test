@@ -7,7 +7,8 @@ from difflib import SequenceMatcher
 
 # ---------- constants ----------
 # Use Render's persistent /data directory if available
-STORE_PATH = "/data/memory_store.json" if os.path.exists("/data") else os.path.join(os.path.dirname(__file__), "memory_store.json")
+STORE_PATH = os.path.join("/data", "memory_store.json")
+
 
 if not os.path.exists(STORE_PATH):
     with open(STORE_PATH, "w", encoding="utf-8") as f:
