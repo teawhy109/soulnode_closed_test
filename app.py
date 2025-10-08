@@ -30,6 +30,12 @@ load_dotenv()
 
 from flask import Flask, request, jsonify, render_template, make_response, Response
 
+# ------------------------------
+# Render Disk Debug Check
+# ------------------------------
+print("DEBUG: Files in /data ->", os.listdir("/data") if os.path.exists("/data") else "NO /data DIRECTORY FOUND")
+
+
 memory = MemoryStore()
 MODE = "closed_test"
 
