@@ -967,6 +967,9 @@ def ask():
         subj, rel, val = None, None, None
 
         # --- INTENT PARSING ---
+        intent = None
+
+        # 🔹 REMEMBER intent
         if lower.startswith("remember"):
             intent = "remember"
             # Clean up phrasing like "remember that my" or "remember my"
@@ -980,12 +983,21 @@ def ask():
                 val = val.strip()
                 print(f"[ASK ROUTE] Entered remember branch: subj={subj}, rel={rel}, val={val}")
 
-        elif lower.startswith("what is"):
+        # 🔹 RECALL intent (handles natural variants)
+        elif any(lower.startswith(p) for p in [
+            "what is", "whats", "what’s", "what was", "who is", "who was",
+            "who’s", "tell me", "do you know", "what are"
+        ]):
             intent = "recall"
-            body = lower.replace("what is", "", 1).strip()
-            rel = body.replace("my", "").strip()
+            body = re.sub(r"^(what( is|’s|s)?|who( is|’s|s)?|tell me|do you know|what are)", "", lower).strip()
+            rel = body.replace("my", "").replace("the", "").strip()
             subj = "ty"
             print(f"[ASK ROUTE] Entered recall branch: subj={subj}, rel={rel}")
+
+        # 🔹 Fallback
+        else:
+            intent = "general"
+
 
 
         # ----- REMEMBER -----
