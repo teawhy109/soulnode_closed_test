@@ -43,7 +43,9 @@ class MemoryStore:
         """Initialize memory store with optional paths."""
         self.base_dir = base_dir
         self.facts_file = facts_file
-        self.runtime_path = runtime_file
+        # Always force persistent Render path
+        self.runtime_path = STORE_PATH
+
         self.memory = {}
         self.facts = {}
 
