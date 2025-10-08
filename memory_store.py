@@ -4,24 +4,23 @@ import re
 from typing import Optional, Tuple, Any
 from difflib import SequenceMatcher
 
-
-# ---------- constants ----------
-# Use Render's persistent /data directory if available
+# ------------------------------------------------------------
+# Persistent Disk Path (Render-safe)
+# ------------------------------------------------------------
 STORE_PATH = os.path.join("/data", "memory_store.json")
+FACTS_PATH = os.path.join(os.path.dirname(__file__), "data", "pam_facts_fixed.json")
 
+os.makedirs(os.path.dirname(STORE_PATH), exist_ok=True)
 
 if not os.path.exists(STORE_PATH):
     with open(STORE_PATH, "w", encoding="utf-8") as f:
         json.dump({}, f)
 
-
+print(f"[Memory Debug] Using store path: {STORE_PATH}")
 
 # ------------------------------------------------------------
 # Constants
 # ------------------------------------------------------------
-STORE_PATH = os.path.join(os.path.dirname(__file__), "memory_store.json")
-FACTS_PATH = os.path.join(os.path.dirname(__file__), "data", "pam_facts_fixed.json")
-
 INVERSE = {
     "husband": "wife",
     "wife": "husband",
@@ -33,6 +32,8 @@ INVERSE = {
 
 NAME_RX = r"[A-Za-z\-']+"
 REL_RX = r"[A-Za-z][A-Za-z\- ]+"
+
+
 
 # ------------------------------------------------------------
 # MemoryStore Class
