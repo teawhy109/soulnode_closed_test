@@ -12,23 +12,29 @@
 
 from __future__ import annotations
 
-import os, re, json, time
+import os, re, json, time, sys
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple, List
 from difflib import SequenceMatcher
 from collections import deque, Counter
-from memory_store import MemoryStore
-from flask import Flask, request, jsonify, send_file
 from datetime import datetime
-import json
 
+# 🧠 Force include project root for local imports
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
 
+# ✅ Core memory module
+from memory_store import MemoryStore
 
-
+# ✅ Flask + environment setup
+from flask import Flask, request, jsonify, send_file, render_template, make_response, Response
 from dotenv import load_dotenv
+
+# ✅ Load environment variables
 load_dotenv()
 
-from flask import Flask, request, jsonify, render_template, make_response, Response
+
 
 # ------------------------------
 # Render Disk Debug Check
@@ -277,16 +283,20 @@ load_dotenv()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 
-# Validate key
-if not OPENAI_API_KEY:
-    raise ValueError("Missing OPENAI_API_KEY — check Render Environment Variables or local .env file.")
+# ✅ Validate key (safe for local + Render)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 
-# Initialize OpenAI client
+if not OPENAI_API_KEY:
+    print("⚠️  Warning: No OPENAI_API_KEY detected — running in local safe mode.")
+    OPENAI_API_KEY = "dummy_key_for_local_dev"  # fallback for local dev
+
+# ✅ Initialize OpenAI client (non-blocking)
 try:
     from openai import OpenAI
     _openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    print("✅ OpenAI client initialized.")
 except Exception as e:
-    print("OpenAI init error:", e)
+    print("⚠️  OpenAI init error:", e)
     _openai_client = None
 
 
@@ -431,6 +441,76 @@ def sandbox_ask():
     except Exception as e:
         print(f"[Sandbox ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)})
+    
+    # ------------------------------------------------------------
+# 🧩 SANDBOX UI - Lightweight Test Console
+# ------------------------------------------------------------
+@app.route("/sandbox_ui", methods=["GET"])
+def sandbox_ui():
+    """Simple HTML UI for sandbox testing."""
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>🧠 SoulNode Sandbox</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #0d1117; color: #eee; display:flex; flex-direction:column; align-items:center; margin-top:40px; }
+            input, select, button { font-size:16px; padding:8px; border-radius:6px; border:none; margin:4px; }
+            input { width:320px; }
+            select { background:#161b22; color:#eee; }
+            button { background:#238636; color:white; cursor:pointer; }
+            button:hover { background:#2ea043; }
+            #log { width:480px; background:#161b22; border-radius:10px; padding:12px; margin-top:20px; min-height:180px; overflow-y:auto; }
+            .msg { margin:8px 0; }
+            .tester { color:#58a6ff; }
+            .ai { color:#c9d1d9; }
+        </style>
+    </head>
+    <body>
+        <h2>🧠 SoulNode Sandbox Console</h2>
+        <div>
+            <label>Tester:</label>
+            <select id="tester">
+                <option value="tester1">tester1</option>
+                <option value="tester2">tester2</option>
+                <option value="tester3">tester3</option>
+                <option value="tester4">tester4</option>
+            </select>
+            <input id="input" placeholder="Type a prompt (e.g., Remember my favorite snack is trail mix.)" />
+            <button onclick="send()">Send</button>
+        </div>
+        <div id="log"></div>
+
+        <script>
+            async function send() {
+                const tester = document.getElementById('tester').value;
+                const text = document.getElementById('input').value.trim();
+                if (!text) return;
+                append('You', text);
+                const res = await fetch('/sandbox/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Tester-ID': tester },
+                    body: JSON.stringify({ text })
+                });
+                const data = await res.json();
+                append('SoulNode', data.answer || '[No response]');
+                document.getElementById('input').value = '';
+            }
+
+            function append(sender, msg) {
+                const log = document.getElementById('log');
+                const div = document.createElement('div');
+                div.className = 'msg';
+                div.innerHTML = `<span class="${sender==='You'?'tester':'ai'}"><b>${sender}:</b> ${msg}</span>`;
+                log.appendChild(div);
+                log.scrollTop = log.scrollHeight;
+            }
+        </script>
+    </body>
+    </html>
+    """
+
 
 
 # -------------------------------------------------------------------------------------------
