@@ -39,6 +39,74 @@ print("DEBUG: Files in /data ->", os.listdir("/data") if os.path.exists("/data")
 memory = MemoryStore()
 MODE = "closed_test"
 
+# ------------------------------------------------------------
+# 🧠 SANDBOX ISOLATION LAYER - Multi-Tester Environment
+# ------------------------------------------------------------
+import threading
+
+# Each tester gets their own isolated memory store
+TESTER_PROFILES = {
+    "tester1": "/data/memory_tester_1.json",
+    "tester2": "/data/memory_tester_2.json",
+    "tester3": "/data/memory_tester_3.json",
+    "tester4": "/data/memory_tester_4.json",
+}
+
+# Active tester lock
+_active_tester = threading.local()
+_active_tester.name = None
+
+def get_tester_memory(tester_id: str):
+    """Returns a unique MemoryStore for each tester."""
+    from memory_store import MemoryStore
+    tester_id = tester_id.lower().strip()
+    path = TESTER_PROFILES.get(tester_id)
+    if not path:
+        raise ValueError(f"Unknown tester ID: {tester_id}")
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+    print(f"[Sandbox] Activated isolated memory for {tester_id} → {path}")
+    return MemoryStore(runtime_file=path)
+
+@app.before_request
+def _set_active_tester():
+    """Detects tester ID from header or query parameter."""
+    tester_id = request.headers.get("X-Tester-ID") or request.args.get("tester")
+    _active_tester.name = tester_id.lower().strip() if tester_id else None
+
+@app.route("/sandbox/ask", methods=["POST"])
+def sandbox_ask():
+    """Handles isolated memory interactions per tester."""
+    try:
+        tester = _active_tester.name or "tester1"  # default to tester1
+        sandbox_mem = get_tester_memory(tester)
+
+        data = request.get_json(silent=True)
+        text = data.get("text", "").strip().lower()
+        answer = None
+
+        # Simple intent detection
+        if text.startswith("remember"):
+            body = text.replace("remember", "", 1).strip()
+            parts = body.split(" is ")
+            if len(parts) == 2:
+                left, val = parts
+                left = left.replace("that", "").replace("my", "").strip()
+                sandbox_mem.remember("tester", left, val.strip())
+                answer = f"Got it. I’ll remember your {left} is {val.strip()}."
+        elif any(text.startswith(p) for p in ["what is", "who is", "where is", "do you know"]):
+            body = text.replace("what is", "").replace("who is", "").replace("where is", "").replace("do you know", "").strip()
+            rel = body.replace("my", "").strip()
+            answer = sandbox_mem.search(rel) or f"I don’t know your {rel} yet."
+        else:
+            answer = "Sandbox active. Use 'remember' or 'what is' to test memory."
+
+        sandbox_mem.save()
+        return jsonify({"ok": True, "tester": tester, "answer": answer})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
 # --------------------------------------------------------
 # Closed Test Operations Logger + Decorator
 # (must appear before any @track_activity(...) usage)
