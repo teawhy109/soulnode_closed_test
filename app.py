@@ -381,6 +381,13 @@ def _set_active_tester():
     """Detects tester ID from header or query parameter."""
     tester_id = request.headers.get("X-Tester-ID") or request.args.get("tester")
     _active_tester.name = tester_id.lower().strip() if tester_id else None
+    
+@app.route("/sandbox")
+def sandbox_page():
+    """Serves the tester chat UI."""
+    tester = request.args.get("tester", "tester1")
+    return render_template("sandbox.html", tester=tester)
+
 
 
 @app.route("/sandbox/ask", methods=["POST"])
