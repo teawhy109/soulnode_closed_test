@@ -324,11 +324,14 @@ STORE = MemoryStore(
 )
 
 # ------------------------------------------------------------
-# 🧠 SANDBOX ISOLATION LAYER - Multi-Tester Environment
+# 🧠 SANDBOX ISOLATION LAYER - Multi-Tester Environment (v1.1)
 # ------------------------------------------------------------
 import threading
+import json
+import os
+import re
 
-# Each tester gets their own isolated memory store
+# Each tester gets their own isolated memory file
 TESTER_PROFILES = {
     "tester1": "/data/memory_tester_1.json",
     "tester2": "/data/memory_tester_2.json",
@@ -336,21 +339,42 @@ TESTER_PROFILES = {
     "tester4": "/data/memory_tester_4.json",
 }
 
-# Active tester lock
 _active_tester = threading.local()
 _active_tester.name = None
 
-def get_tester_memory(tester_id: str):
-    """Returns a unique MemoryStore for each tester."""
-    from memory_store import MemoryStore
+
+def _get_sandbox_path(tester_id: str):
     tester_id = tester_id.lower().strip()
     path = TESTER_PROFILES.get(tester_id)
     if not path:
         raise ValueError(f"Unknown tester ID: {tester_id}")
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-    print(f"[Sandbox] Activated isolated memory for {tester_id} → {path}")
-    return MemoryStore(runtime_file=path)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return path
+
+
+def _load_sandbox_memory(path: str):
+    """Loads JSON file if exists, otherwise create new."""
+    if os.path.exists(path):
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[Sandbox] Load failed ({path}): {e}")
+            return {}
+    else:
+        with open(path, "w") as f:
+            json.dump({}, f)
+        return {}
+
+
+def _save_sandbox_memory(path: str, data: dict):
+    """Writes updated sandbox memory to disk."""
+    try:
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"[Sandbox] Save failed ({path}): {e}")
+
 
 @app.before_request
 def _set_active_tester():
@@ -358,44 +382,49 @@ def _set_active_tester():
     tester_id = request.headers.get("X-Tester-ID") or request.args.get("tester")
     _active_tester.name = tester_id.lower().strip() if tester_id else None
 
+
 @app.route("/sandbox/ask", methods=["POST"])
 def sandbox_ask():
-    """Handles isolated memory interactions per tester."""
+    """Handles fully isolated sandbox memory per tester."""
     try:
-        tester = _active_tester.name or "tester1"  # default to tester1
-        sandbox_mem = get_tester_memory(tester)
+        tester = _active_tester.name or "tester1"
+        path = _get_sandbox_path(tester)
+        memory_data = _load_sandbox_memory(path)
 
-        data = request.get_json(silent=True)
+        data = request.get_json(silent=True) or {}
         text = data.get("text", "").strip().lower()
         answer = None
 
-        # Simple intent detection
+        # 🧠 "Remember my X is Y" pattern
         if text.startswith("remember"):
-            body = text.replace("remember", "", 1).strip()
-            parts = body.split(" is ")
-            if len(parts) == 2:
-                left, val = parts
-                left = left.replace("that", "").replace("my", "").strip()
-                sandbox_mem.remember("tester", left, val.strip())
-                answer = f"Got it. I’ll remember your {left} is {val.strip()}."
-        elif any(text.startswith(p) for p in ["what is", "who is", "where is", "do you know"]):
-            body = text.replace("what is", "").replace("who is", "").replace("where is", "").replace("do you know", "").strip()
-            rel = body.replace("my", "").strip()
-
-            # ✅ Use sandbox memory instead of global memory
-            result = sandbox_mem.search(rel)
-            if result:
-                answer = result
+            match = re.match(r"remember\s+(?:that\s+)?(?:my\s+)?(.+?)\s+is\s+(.+)", text)
+            if match:
+                key, value = match.groups()
+                key, value = key.strip(), value.strip().rstrip(".!?")
+                memory_data[key] = value
+                _save_sandbox_memory(path, memory_data)
+                answer = f"Got it. I’ll remember your {key} is {value}."
             else:
-                answer = f"I don’t know your {rel} yet."
+                answer = "Try saying: 'Remember my car is Tesla.'"
+
+        # 🧩 Recall: "What is my X?"
+        elif any(text.startswith(p) for p in ["what is", "who is", "where is", "do you know"]):
+            key = re.sub(r"^(what|who|where|do you know)\s+(is|are)\s+", "", text).replace("my ", "").strip().rstrip("?.")
+
+            if key in memory_data:
+                answer = memory_data[key]
+            else:
+                answer = f"I don’t know your {key} yet."
 
         else:
-            answer = "Sandbox active. Use 'remember' or 'what is' to test memory."
+            answer = "Sandbox active. Use 'Remember my car is Tesla' or 'What is my car?'"
 
-        sandbox_mem.save()
         return jsonify({"ok": True, "tester": tester, "answer": answer})
+
     except Exception as e:
+        print(f"[Sandbox ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)})
+
 
 # -------------------------------------------------------------------------------------------
 # Identity (NEVER GPT)
