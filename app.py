@@ -972,27 +972,32 @@ def ask():
         # 🔹 REMEMBER intent
         if lower.startswith("remember"):
             intent = "remember"
-            # Clean up phrasing like "remember that my" or "remember my"
+            # Handle flexible grammar: is / are / was / were
             body = lower.replace("remember", "", 1).strip()
-            parts = re.split(r"\bis\b", body, maxsplit=1)
-            if len(parts) == 2:
-                left, val = parts
-                left = left.replace("that", "").replace("my", "").strip()
+            parts = re.split(r"\b(is|are|was|were)\b", body, maxsplit=1)
+            if len(parts) >= 3:
+                left = parts[0].replace("that", "").replace("my", "").strip()
+                val = parts[2].strip()
                 subj = "ty"
                 rel = left
-                val = val.strip()
                 print(f"[ASK ROUTE] Entered remember branch: subj={subj}, rel={rel}, val={val}")
 
         # 🔹 RECALL intent (handles natural variants)
         elif any(lower.startswith(p) for p in [
-            "what is", "whats", "what’s", "what was", "who is", "who was",
-            "who’s", "tell me", "do you know", "what are"
+            "what is", "whats", "what’s", "what was",
+            "who is", "who are", "who’s", "who was",
+            "tell me", "do you know", "what are"
         ]):
             intent = "recall"
-            body = re.sub(r"^(what( is|’s|s)?|who( is|’s|s)?|tell me|do you know|what are)", "", lower).strip()
+            body = re.sub(r"^(what( is|’s|s)?|who( is|’s|s| are)?|tell me|do you know|what are)", "", lower).strip()
             rel = body.replace("my", "").replace("the", "").strip()
             subj = "ty"
+
+            # Map common words like "kids" to consistent relations
+            if rel in ["kids", "children", "sons", "daughters"]:
+                rel = "kids"
             print(f"[ASK ROUTE] Entered recall branch: subj={subj}, rel={rel}")
+
 
         # 🔹 Fallback
         else:
