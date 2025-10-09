@@ -381,7 +381,14 @@ def sandbox_ask():
         elif any(text.startswith(p) for p in ["what is", "who is", "where is", "do you know"]):
             body = text.replace("what is", "").replace("who is", "").replace("where is", "").replace("do you know", "").strip()
             rel = body.replace("my", "").strip()
-            answer = sandbox_mem.search(rel) or f"I don’t know your {rel} yet."
+
+            # ✅ Use sandbox memory instead of global memory
+            result = sandbox_mem.search(rel)
+            if result:
+                answer = result
+            else:
+                answer = f"I don’t know your {rel} yet."
+
         else:
             answer = "Sandbox active. Use 'remember' or 'what is' to test memory."
 
