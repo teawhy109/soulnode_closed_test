@@ -348,21 +348,29 @@ def _cosine(u, v):
     return dot / (math.sqrt(nu) * math.sqrt(nv))
 
 def _embed(text: str):
-    """Generate embedding vector from OpenAI API."""
+    """Generate embedding vector from OpenAI API with diagnostics."""
     from openai import OpenAI
     try:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("[Embed Error] Missing OPENAI_API_KEY in environment.")
+            return None
         client = globals().get("_openai_client")
         if not client:
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            client = OpenAI(api_key=api_key)
             globals()["_openai_client"] = client
-        resp = client.embeddings.create(
-            model=EMBED_MODEL,
-            input=text
-        )
-        return resp.data[0].embedding
+        resp = client.embeddings.create(model=EMBED_MODEL, input=text)
+        emb = resp.data[0].embedding
+        if emb and len(emb) > 100:
+            print(f"[Embed OK] Text='{text}' Vector size={len(emb)}")
+            return emb
+        else:
+            print(f"[Embed Warning] No embedding returned for: {text}")
+            return None
     except Exception as e:
-        print(f"[Embed Error] {e}")
+        print(f"[Embed Exception] {e}")
         return None
+
 
 # ✅ Memory file per tester
 TESTER_PROFILES = {
