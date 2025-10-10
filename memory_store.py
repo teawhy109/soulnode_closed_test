@@ -5,6 +5,45 @@ from typing import Optional, Tuple, Any
 from difflib import SequenceMatcher
 
 # ------------------------------------------------------------
+# 🧠 Semantic Embedding Helpers
+# ------------------------------------------------------------
+import math
+from openai import OpenAI
+
+EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-small")
+
+# Initialize once at module load
+try:
+    _openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    print("[Embeddings] ✅ OpenAI client initialized.")
+except Exception as e:
+    print(f"[Embeddings] ⚠️ Could not init OpenAI client: {e}")
+    _openai_client = None
+
+def _embed(text: str):
+    """Generate an embedding vector for a given text."""
+    if not text or not _openai_client:
+        return None
+    try:
+        resp = _openai_client.embeddings.create(model=EMBED_MODEL, input=text)
+        return resp.data[0].embedding
+    except Exception as e:
+        print(f"[Embed Error] {e}")
+        return None
+
+def _cosine(u, v):
+    """Cosine similarity between two vectors."""
+    if not u or not v:
+        return -1.0
+    dot = sum(a * b for a, b in zip(u, v))
+    nu = math.sqrt(sum(a * a for a in u))
+    nv = math.sqrt(sum(b * b for b in v))
+    if nu == 0 or nv == 0:
+        return -1.0
+    return dot / (nu * nv)
+
+
+# ------------------------------------------------------------
 # Persistent Disk Path (Render-safe)
 # ------------------------------------------------------------
 STORE_PATH = os.path.join("/data", "memory_store.json")
@@ -121,48 +160,62 @@ class MemoryStore:
     # --------------------------------------------------------
     def remember(self, subject: str, relation: str, value, silent: bool = False):
         """Store a (subject, relation, value) triple, avoid duplicates, and sanitize values."""
-        try:
-            # Normalize the value
-            if isinstance(value, list):
-                flat = []
-                for v in value:
-                    if isinstance(v, list):
-                        flat.extend(v)
-                    else:
-                        v = str(v).strip("[]'\" ")
-                        if v and v not in flat:
-                            flat.append(v)
-                value = flat[0] if len(flat) == 1 else flat
-            elif isinstance(value, str):
-                value = value.strip("[]'\" ")
+    try:
+        # Normalize the value
+        if isinstance(value, list):
+            flat = []
+            for v in value:
+                if isinstance(v, list):
+                    flat.extend(v)
+                else:
+                    v = str(v).strip("[]'\" ")
+                    if v and v not in flat:
+                        flat.append(v)
+            value = flat[0] if len(flat) == 1 else flat
+        elif isinstance(value, str):
+            value = value.strip("[]'\" ")
 
-            # Prep keys
-            subj_key = subject.lower().strip()
-            rel_key = relation.lower().strip()
+        # Prep keys
+        subj_key = subject.lower().strip()
+        rel_key = relation.lower().strip()
 
-            # Initialize subject section if needed
-            if subj_key not in self.memory:
-                self.memory[subj_key] = {}
+        # Initialize subject section if needed
+        if subj_key not in self.memory:
+            self.memory[subj_key] = {}
 
-            # Retrieve and normalize existing values
-            existing = self.memory[subj_key].get(rel_key, [])
-            if not isinstance(existing, list):
-                existing = [existing]
+        # Retrieve and normalize existing values
+        existing = self.memory[subj_key].get(rel_key, [])
+        if not isinstance(existing, list):
+            existing = [existing]
 
-            # Prevent duplicates (deep clean version)
-            existing_clean = [str(v).strip("[]'\" ").lower() for v in existing]
-            value_clean = str(value).strip("[]'\" ").lower()
+        # Prevent duplicates (deep clean version)
+        existing_clean = [str(v).strip("[]'\" ").lower() for v in existing]
+        value_clean = str(value).strip("[]'\" ").lower()
 
-            if value_clean not in existing_clean:
-                existing_clean.append(value_clean)
-                self.memory[subj_key][rel_key] = existing_clean
-                self.save()
-                print(f"[Memory] ✅ Remembered: {subject} → {relation}: {value_clean}")
-            else:
-                print(f"[Memory] ⚠️ Duplicate ignored: {subject} → {relation}: {value_clean}")
+        if value_clean not in existing_clean:
+            existing_clean.append(value_clean)
+            self.memory[subj_key][rel_key] = existing_clean
 
-        except Exception as e:
-            print(f"[Memory Remember Error] {e}")
+            # 🧠 Add embedding vector for semantic recall
+            try:
+                emb = _embed(f"{subject} {relation}")
+                if emb:
+                    if "__vectors__" not in self.memory:
+                        self.memory["__vectors__"] = {}
+                    self.memory["__vectors__"][f"{subject}|{relation}"] = emb
+                    print(f"[Embed OK] Vector stored for {subject}|{relation}")
+            except Exception as e:
+                print(f"[Embed Store Error] {e}")
+
+            # Save memory after embedding is stored
+            self.save()
+            print(f"[Memory] ✅ Remembered: {subject} → {relation}: {value_clean}")
+        else:
+            print(f"[Memory] ⚠️ Duplicate ignored: {subject} → {relation}: {value_clean}")
+
+    except Exception as e:
+        print(f"[Memory Remember Error] {e}")
+
 
 
 
@@ -234,7 +287,50 @@ class MemoryStore:
         if best_score > 0.6:
             return best_value
 
+        # 4️⃣ Semantic fallback
+        semantic_result = self.semantic_search(query)
+        if semantic_result:
+            return semantic_result
+
         return None
+    
+        # --------------------------------------------------------
+    # Semantic Search (Vector Recall)
+    # --------------------------------------------------------
+    def semantic_search(self, query: str):
+        """Return the closest match using stored embeddings."""
+        try:
+            # Skip if no vectors exist
+            if "__vectors__" not in self.memory or not self.memory["__vectors__"]:
+                return None
+
+            # Generate embedding for the query
+            q_vec = _embed(query)
+            if not q_vec:
+                return None
+
+            best_score = 0.0
+            best_key = None
+
+            # Compare cosine similarity between query and stored vectors
+            for key, vec in self.memory["__vectors__"].items():
+                score = _cosine(q_vec, vec)
+                if score > best_score:
+                    best_score, best_key = score, key
+
+            # Only return result if it’s a strong match
+            if best_score > 0.75 and best_key:
+                subj, rel = best_key.split("|", 1)
+                values = self.memory.get(subj, {}).get(rel, [])
+                if isinstance(values, list):
+                    values = ", ".join(values)
+                print(f"[Semantic Recall ✅] '{query}' matched '{rel}' (score={best_score:.2f})")
+                return values
+            return None
+        except Exception as e:
+            print(f"[Semantic Search Error] {e}")
+            return None
+
 
 
 
