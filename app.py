@@ -334,24 +334,58 @@ STORE = MemoryStore(
 )
 
 # ------------------------------------------------------------
-# 🧠 SANDBOX ISOLATION LAYER - Multi-Tester Environment (v1.1)
+# 🧠 SANDBOX ISOLATION LAYER - Multi-Tester Environment (v1.2 Semantic Ready)
 # ------------------------------------------------------------
 import threading
 import json
 import os
 import re
+from flask import request, jsonify, render_template
 
-# Each tester gets their own isolated memory file
+# ✅ Thread-local tester context must be defined BEFORE routes
+_active_tester = threading.local()
+_active_tester.name = None
+
+# ==== Semantic Matching (Embeddings) helpers ====
+EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-small")
+
+def _norm(s: str) -> str:
+    s = s.lower().strip()
+    s = re.sub(r"[^a-z0-9\s]", " ", s)
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+def _cosine(u, v):
+    if not u or not v:
+        return -1.0
+    import math
+    dot = sum(a * b for a, b in zip(u, v))
+    nu = sum(a * a for a in u)
+    nv = sum(b * b for b in v)
+    if nu == 0.0 or nv == 0.0:
+        return -1.0
+    return dot / (math.sqrt(nu) * math.sqrt(nv))
+
+def _embed(text: str):
+    """Return embedding vector if OpenAI client is available, else None."""
+    try:
+        if '_openai_client' in globals() and _openai_client:
+            resp = _openai_client.embeddings.create(
+                model=EMBED_MODEL,
+                input=text
+            )
+            return resp.data[0].embedding
+    except Exception as e:
+        print(f"[Embed] Error: {e}")
+    return None
+
+# ✅ Each tester gets their own isolated memory file
 TESTER_PROFILES = {
     "tester1": "/data/memory_tester_1.json",
     "tester2": "/data/memory_tester_2.json",
     "tester3": "/data/memory_tester_3.json",
     "tester4": "/data/memory_tester_4.json",
 }
-
-_active_tester = threading.local()
-_active_tester.name = None
-
 
 def _get_sandbox_path(tester_id: str):
     tester_id = tester_id.lower().strip()
@@ -361,77 +395,124 @@ def _get_sandbox_path(tester_id: str):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return path
 
-
 def _load_sandbox_memory(path: str):
-    """Loads JSON file if exists, otherwise create new."""
+    """Loads JSON and ensures structure: {'data': {...}, '_index': {...}}."""
     if os.path.exists(path):
         try:
-            with open(path, "r") as f:
-                return json.load(f)
+            with open(path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
         except Exception as e:
             print(f"[Sandbox] Load failed ({path}): {e}")
-            return {}
+            raw = {}
     else:
-        with open(path, "w") as f:
-            json.dump({}, f)
-        return {}
+        raw = {}
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(raw, f)
 
+    if not isinstance(raw, dict):
+        raw = {}
+    data = raw.get("data")
+    index = raw.get("_index")
+
+    if data is None:
+        if raw and all(isinstance(v, str) for v in raw.values()):
+            data = { _norm(k): v for k, v in raw.items() }
+        else:
+            data = {}
+    if index is None:
+        index = {}
+
+    return {"data": data, "_index": index}
 
 def _save_sandbox_memory(path: str, data: dict):
-    """Writes updated sandbox memory to disk."""
     try:
-        with open(path, "w") as f:
-            json.dump(data, f, indent=2)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"[Sandbox] Save failed ({path}): {e}")
 
-
+# ✅ Detect tester ID before every request
 @app.before_request
 def _set_active_tester():
-    """Detects tester ID from header or query parameter."""
     tester_id = request.headers.get("X-Tester-ID") or request.args.get("tester")
     _active_tester.name = tester_id.lower().strip() if tester_id else None
-    
+
 @app.route("/sandbox")
 def sandbox_page():
-    """Serves the tester chat UI."""
     tester = request.args.get("tester", "tester1")
     return render_template("sandbox.html", tester=tester)
 
-
-
 @app.route("/sandbox/ask", methods=["POST"])
 def sandbox_ask():
-    """Handles fully isolated sandbox memory per tester."""
+    """Handles fully isolated sandbox memory per tester with semantic-style recall."""
     try:
         tester = _active_tester.name or "tester1"
         path = _get_sandbox_path(tester)
         memory_data = _load_sandbox_memory(path)
+        store = memory_data.get("data", {})
+        index = memory_data.get("_index", {})
 
         data = request.get_json(silent=True) or {}
         text = data.get("text", "").strip().lower()
         answer = None
 
-        # 🧠 "Remember my X is Y" pattern
+        # 🧠 Store memory
         if text.startswith("remember"):
             match = re.match(r"remember\s+(?:that\s+)?(?:my\s+)?(.+?)\s+is\s+(.+)", text)
             if match:
                 key, value = match.groups()
-                key, value = key.strip(), value.strip().rstrip(".!?")
-                memory_data[key] = value
+                key = _norm(key)
+                store[key] = value
+                emb = _embed(key)
+                if emb:
+                    index[key] = {"e": emb}
+                memory_data["data"] = store
+                memory_data["_index"] = index
                 _save_sandbox_memory(path, memory_data)
                 answer = f"Got it. I’ll remember your {key} is {value}."
             else:
                 answer = "Try saying: 'Remember my car is Tesla.'"
 
-        # 🧩 Recall: "What is my X?"
-        elif any(text.startswith(p) for p in ["what is", "who is", "where is", "do you know"]):
-            key = re.sub(r"^(what|who|where|do you know)\s+(is|are)\s+", "", text).replace("my ", "").strip().rstrip("?.")
+        # 🧠 Recall memory — semantic + fuzzy
+        elif any(q in text for q in ["what", "who", "where", "do you know", "tell me", "favorite", "whats", "what’s", "who’s"]):
+            key_guess = re.sub(
+                r"^(what|who|where|do you know|tell me|whats|what’s|who’s)\s+(is|are|was|were)?\s*",
+                "",
+                text
+            )
+            key_guess = _norm(key_guess.replace("my ", "").replace("the ", ""))
 
-            if key in memory_data:
-                answer = memory_data[key]
+            # ✅ Direct hit
+            if key_guess in store:
+                answer = store[key_guess]
+
+            # ✅ Semantic match (if embedding available)
             else:
-                answer = f"I don’t know your {key} yet."
+                q_emb = _embed(key_guess)
+                best_key, best_score = None, -1.0
+                if q_emb and index:
+                    for k, meta in index.items():
+                        emb = meta.get("e")
+                        if emb:
+                            score = _cosine(q_emb, emb)
+                            if score > best_score:
+                                best_key, best_score = k, score
+                if best_key and best_score >= 0.78:
+                    answer = store[best_key]
+
+            # ✅ Fuzzy fallback
+            if not answer and store:
+                from difflib import SequenceMatcher
+                best_key, best_score = None, 0.0
+                for k in store.keys():
+                    s = SequenceMatcher(None, key_guess, k).ratio()
+                    if s > best_score:
+                        best_key, best_score = k, s
+                if best_key and best_score >= 0.62:
+                    answer = store[best_key]
+
+            if not answer:
+                answer = f"I don’t know your {key_guess} yet."
 
         else:
             answer = "Sandbox active. Use 'Remember my car is Tesla' or 'What is my car?'"
@@ -441,6 +522,11 @@ def sandbox_ask():
     except Exception as e:
         print(f"[Sandbox ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)})
+
+
+
+
+
     
     # ------------------------------------------------------------
 # 🧩 SANDBOX UI - Lightweight Test Console
