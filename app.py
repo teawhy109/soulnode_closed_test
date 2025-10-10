@@ -739,15 +739,25 @@ def _load_pam_txt_file(p: Path) -> int:
                 continue
             mem_remember("pam", str(rel), str(val)); added += 1
     return added
-# ✅ Define the memory store file path before using it
-MEM_FILE = "/data/memory_store.json"
+# ✅ Define the memory store file paths before using them
+from pathlib import Path
 
+MEM_FILE = Path("/data/memory_store.json")
+SESSION_FILE = Path("/data/session_store.json")
+PAM_JSON = Path("/data/pam_facts_flat.json")
+PAM_TXT = Path("/data/pam.txt")
 
-pre_added = _load_memory_store_json(MEM_FILE)
-pre_added += _load_memory_store_json(SESSION_FILE)
-pre_added += _load_pam_flat(PAM_JSON)
-pre_added += _load_pam_txt_file(PAM_TXT)
-print(f"[app] Preloaded facts into memory: {pre_added}")
+# ✅ Preload memory safely
+try:
+    pre_added = 0
+    pre_added += _load_memory_store_json(MEM_FILE)
+    pre_added += _load_memory_store_json(SESSION_FILE)
+    pre_added += _load_pam_flat(PAM_JSON)
+    pre_added += _load_pam_txt_file(PAM_TXT)
+    print(f"[app] ✅ Preloaded facts into memory: {pre_added}")
+except Exception as e:
+    print(f"[Startup Error] Memory preload failed: {e}")
+
 
 # -------------------------------------------------------------------------------------------
 # Teach parsing (commands + natural)
