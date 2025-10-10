@@ -312,37 +312,17 @@ except Exception:
     def _save_memory(*_a, **_k): pass
     def _log_unknown_input(*_a, **_k): pass
 
-# -------------------------------------------------------------------------------------------
-# App / Paths
-# -------------------------------------------------------------------------------------------
-app = Flask(__name__, template_folder="templates")
-
-DATA_DIR = Path("data")
-DATA_DIR.mkdir(exist_ok=True, parents=True)
-
-MEM_FILE = Path("memory_store.json")
-SESSION_FILE = Path("session_memory.json") # if you use it, we won't choke
-PAM_JSON = DATA_DIR / "pam_facts_flat.json"
-PAM_TXT = DATA_DIR / "pam_facts_flat.json" if (DATA_DIR / "pam_facts_flat.json").exists() else Path("pam_facts_flat.json")
-
-# Initialize MemoryStore with both pam facts and runtime memory
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STORE = MemoryStore(
-    base_dir=BASE_DIR,
-    facts_file=str(PAM_JSON),
-    runtime_file=str(MEM_FILE),
-)
-
 # ------------------------------------------------------------
-# 🧠 SANDBOX ISOLATION LAYER - Multi-Tester Environment (v1.2 Semantic Ready)
+# 🧠 SANDBOX ISOLATION LAYER - Multi-Tester Environment (v1.3 Semantic Integrated)
 # ------------------------------------------------------------
 import threading
 import json
 import os
 import re
+import math
 from flask import request, jsonify, render_template
 
-# ✅ Thread-local tester context must be defined BEFORE routes
+# ✅ Thread-local tester context
 _active_tester = threading.local()
 _active_tester.name = None
 
@@ -352,22 +332,18 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-small")
 def _norm(s: str) -> str:
     s = s.lower().strip()
     s = re.sub(r"[^a-z0-9\s]", " ", s)
-    s = re.sub(r"\s+", " ", s)
-    return s
+    return re.sub(r"\s+", " ", s).strip()
 
 def _cosine(u, v):
-    if not u or not v:
+    if not u or not v or len(u) != len(v):
         return -1.0
-    import math
     dot = sum(a * b for a, b in zip(u, v))
-    nu = sum(a * a for a in u)
-    nv = sum(b * b for b in v)
-    if nu == 0.0 or nv == 0.0:
-        return -1.0
-    return dot / (math.sqrt(nu) * math.sqrt(nv))
+    nu = math.sqrt(sum(a * a for a in u))
+    nv = math.sqrt(sum(b * b for b in v))
+    return dot / (nu * nv) if nu and nv else -1.0
 
 def _embed(text: str):
-    """Return embedding vector if OpenAI client is available, else None."""
+    """Return embedding vector using OpenAI embeddings API."""
     try:
         if '_openai_client' in globals() and _openai_client:
             resp = _openai_client.embeddings.create(
@@ -376,10 +352,10 @@ def _embed(text: str):
             )
             return resp.data[0].embedding
     except Exception as e:
-        print(f"[Embed] Error: {e}")
+        print(f"[Embed ERROR] {e}")
     return None
 
-# ✅ Each tester gets their own isolated memory file
+# ==== Tester Isolation ====
 TESTER_PROFILES = {
     "tester1": "/data/memory_tester_1.json",
     "tester2": "/data/memory_tester_2.json",
@@ -396,7 +372,7 @@ def _get_sandbox_path(tester_id: str):
     return path
 
 def _load_sandbox_memory(path: str):
-    """Loads JSON and ensures structure: {'data': {...}, '_index': {...}}."""
+    """Ensure JSON structure: {'data': {}, '_index': {}}"""
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -411,27 +387,19 @@ def _load_sandbox_memory(path: str):
 
     if not isinstance(raw, dict):
         raw = {}
-    data = raw.get("data")
-    index = raw.get("_index")
+    return {
+        "data": raw.get("data", {}),
+        "_index": raw.get("_index", {})
+    }
 
-    if data is None:
-        if raw and all(isinstance(v, str) for v in raw.values()):
-            data = { _norm(k): v for k, v in raw.items() }
-        else:
-            data = {}
-    if index is None:
-        index = {}
-
-    return {"data": data, "_index": index}
-
-def _save_sandbox_memory(path: str, data: dict):
+def _save_sandbox_memory(path: str, mem: dict):
     try:
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            json.dump(mem, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"[Sandbox] Save failed ({path}): {e}")
 
-# ✅ Detect tester ID before every request
+# ==== Flask Setup ====
 @app.before_request
 def _set_active_tester():
     tester_id = request.headers.get("X-Tester-ID") or request.args.get("tester")
@@ -444,75 +412,73 @@ def sandbox_page():
 
 @app.route("/sandbox/ask", methods=["POST"])
 def sandbox_ask():
-    """Handles fully isolated sandbox memory per tester with semantic-style recall."""
+    """Handles isolated tester memory with full semantic recall."""
     try:
         tester = _active_tester.name or "tester1"
         path = _get_sandbox_path(tester)
-        memory_data = _load_sandbox_memory(path)
-        store = memory_data.get("data", {})
-        index = memory_data.get("_index", {})
+        mem = _load_sandbox_memory(path)
+        store, index = mem["data"], mem["_index"]
 
         data = request.get_json(silent=True) or {}
-        text = data.get("text", "").strip().lower()
+        text = _norm(data.get("text", ""))
+
+        if not text:
+            return jsonify({"ok": False, "error": "Empty input"})
+
         answer = None
 
-        # 🧠 Store memory
+        # 🧠 Remember
         if text.startswith("remember"):
             match = re.match(r"remember\s+(?:that\s+)?(?:my\s+)?(.+?)\s+is\s+(.+)", text)
             if match:
                 key, value = match.groups()
-                key = _norm(key)
-                store[key] = value
-                emb = _embed(key)
+                key_n = _norm(key)
+                emb = _embed(key_n)
+                store[key_n] = value
                 if emb:
-                    index[key] = {"e": emb}
-                memory_data["data"] = store
-                memory_data["_index"] = index
-                _save_sandbox_memory(path, memory_data)
+                    index[key_n] = {"e": emb}
+                mem["data"], mem["_index"] = store, index
+                _save_sandbox_memory(path, mem)
                 answer = f"Got it. I’ll remember your {key} is {value}."
             else:
                 answer = "Try saying: 'Remember my car is Tesla.'"
 
-        # 🧠 Recall memory — semantic + fuzzy
-        elif any(q in text for q in ["what", "who", "where", "do you know", "tell me", "favorite", "whats", "what’s", "who’s"]):
-            key_guess = re.sub(
-                r"^(what|who|where|do you know|tell me|whats|what’s|who’s)\s+(is|are|was|were)?\s*",
-                "",
-                text
-            )
-            key_guess = _norm(key_guess.replace("my ", "").replace("the ", ""))
+        # 🧠 Recall (semantic + fuzzy)
+        elif any(word in text for word in ["what", "who", "where", "favorite", "tell", "do you know", "which"]):
+            q = re.sub(r"^(what|who|where|tell|which|favorite|do you know)\s+", "", text)
+            q_n = _norm(q.replace("my ", "").replace("the ", ""))
 
-            # ✅ Direct hit
-            if key_guess in store:
-                answer = store[key_guess]
+            # 1️⃣ Direct hit
+            if q_n in store:
+                answer = store[q_n]
 
-            # ✅ Semantic match (if embedding available)
-            else:
-                q_emb = _embed(key_guess)
-                best_key, best_score = None, -1.0
-                if q_emb and index:
+            # 2️⃣ Semantic search
+            if not answer and index:
+                q_emb = _embed(q_n)
+                if q_emb:
+                    best_key, best_score = None, -1.0
                     for k, meta in index.items():
                         emb = meta.get("e")
                         if emb:
-                            score = _cosine(q_emb, emb)
-                            if score > best_score:
-                                best_key, best_score = k, score
-                if best_key and best_score >= 0.78:
-                    answer = store[best_key]
+                            s = _cosine(q_emb, emb)
+                            if s > best_score:
+                                best_key, best_score = k, s
+                    if best_key and best_score >= 0.78:
+                        answer = store.get(best_key)
 
-            # ✅ Fuzzy fallback
+            # 3️⃣ Fuzzy fallback
             if not answer and store:
                 from difflib import SequenceMatcher
                 best_key, best_score = None, 0.0
                 for k in store.keys():
-                    s = SequenceMatcher(None, key_guess, k).ratio()
+                    s = SequenceMatcher(None, q_n, k).ratio()
                     if s > best_score:
                         best_key, best_score = k, s
                 if best_key and best_score >= 0.62:
                     answer = store[best_key]
 
             if not answer:
-                answer = f"I don’t know your {key_guess} yet."
+                answer = f"I don’t know your {q_n} yet."
 
         else:
             answer = "Sandbox active. Use 'Remember my car is Tesla' or 'What is my car?'"
