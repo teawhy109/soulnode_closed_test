@@ -739,6 +739,9 @@ def _load_pam_txt_file(p: Path) -> int:
                 continue
             mem_remember("pam", str(rel), str(val)); added += 1
     return added
+# ✅ Define the memory store file path before using it
+MEM_FILE = "/data/memory_store.json"
+
 
 pre_added = _load_memory_store_json(MEM_FILE)
 pre_added += _load_memory_store_json(SESSION_FILE)
