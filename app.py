@@ -18,6 +18,9 @@ from typing import Optional, Dict, Any, Tuple, List
 from difflib import SequenceMatcher
 from collections import deque, Counter
 from datetime import datetime
+from flask import Flask
+app = Flask(__name__)
+
 
 # 🧠 Force include project root for local imports
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
