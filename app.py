@@ -28,7 +28,8 @@ if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
 # ✅ Core memory module
-from memory_store import MemoryStore
+from sqlite_memory import SQLiteMemory as MemoryStore
+
 
 # ✅ Flask + environment setup
 from flask import Flask, request, jsonify, send_file, render_template, make_response, Response
