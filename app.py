@@ -1134,7 +1134,7 @@ def tests_smoke():
 
 @app.route("/mem/remember", methods=["POST"])
 def mem_remember():
-    """Add or update a memory fact."""
+    """Add or update a memory fact using SQLite backend."""
     try:
         data = request.get_json(force=True)
         subject = data.get("subject", "").strip()
@@ -1158,25 +1158,28 @@ def mem_remember():
                     .replace("’s", "'s")
                 )
 
-        subject = data.get("subject")
-        relation = data.get("relation")
-        value = data.get("value")
+        subject = data["subject"]
+        relation = data["relation"]
+        value = data["value"]
 
-        # --- detect duplicate before saving ---
-        existing = memory.memory.get(subject, {}).get(relation, [])
-        is_duplicate = value.lower() in [str(v).lower() for v in existing]
-
-        memory.remember(subject, relation, value)
-
-        if is_duplicate:
+        # --- check for duplicates using SQLite ---
+        existing_values = memory.recall(subject, relation)
+        if existing_values and (
+            (isinstance(existing_values, list) and value.lower() in [v.lower() for v in existing_values])
+            or (isinstance(existing_values, str) and value.lower() == existing_values.lower())
+        ):
             msg = f"⚠️ Duplicate ignored: {subject} → {relation}: {value}"
-        else:
-            msg = f"✅ Remembered {subject} → {relation}: {value}"
+            return jsonify({"ok": True, "message": msg})
 
+        # --- save to SQLite ---
+        memory.remember(subject, relation, value)
+        msg = f"✅ Remembered {subject} → {relation}: {value}"
         return jsonify({"ok": True, "message": msg})
+
     except Exception as e:
         print(f"[MEM ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
     
