@@ -1128,25 +1128,20 @@ def mem_remember():
     """Add or update a memory fact in SQLite."""
     try:
         data = request.get_json(force=True)
-        subject = data.get("subject", "").strip().lower()
-        relation = data.get("relation", "").strip().lower()
+        subject = data.get("subject", "").strip()
+        relation = data.get("relation", "").strip()
         value = data.get("value", "").strip()
 
         if not all([subject, relation, value]):
             return jsonify({"ok": False, "error": "Missing subject, relation, or value"}), 400
 
-        # Check if this memory already exists
-        existing = memory.recall(subject, relation)
-        is_duplicate = existing and str(value).lower() in [str(v).lower() for v in ([existing] if isinstance(existing, str) else existing)]
-
         memory.remember(subject, relation, value)
-
-        msg = f"⚠️ Duplicate ignored: {subject} → {relation}: {value}" if is_duplicate else f"✅ Remembered {subject} → {relation}: {value}"
-        return jsonify({"ok": True, "message": msg})
+        return jsonify({"ok": True, "message": f"✅ Remembered {subject} → {relation}: {value}"})
 
     except Exception as e:
         print(f"[MEM ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
 
@@ -1360,20 +1355,14 @@ def mem_status():
 
 @app.route("/mem/export", methods=["GET"])
 def mem_export():
-    """Export current memory as a downloadable JSON file."""
+    """Export all memory data from SQLite."""
     try:
-        if not os.path.exists(memory.runtime_path):
-            return jsonify({"ok": False, "error": "Memory file not found"}), 404
-
-        return send_file(
-            memory.runtime_path,
-            as_attachment=True,
-            download_name="memory_store_backup.json",
-            mimetype="application/json"
-        )
+        data = memory.export()
+        return jsonify({"memory": data, "ok": True})
     except Exception as e:
         print(f"[MEM EXPORT ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
     
 
     
