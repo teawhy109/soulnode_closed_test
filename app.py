@@ -1135,51 +1135,29 @@ def tests_smoke():
 
 @app.route("/mem/remember", methods=["POST"])
 def mem_remember():
-    """Add or update a memory fact using SQLite backend."""
+    """Add or update a memory fact in SQLite."""
     try:
         data = request.get_json(force=True)
-        subject = data.get("subject", "").strip()
-        relation = data.get("relation", "").strip()
+        subject = data.get("subject", "").strip().lower()
+        relation = data.get("relation", "").strip().lower()
         value = data.get("value", "").strip()
 
         if not all([subject, relation, value]):
             return jsonify({"ok": False, "error": "Missing subject, relation, or value"}), 400
 
-        # Clean phrasing
-        for field in ["subject", "relation", "value"]:
-            if isinstance(data.get(field), str):
-                data[field] = (
-                    data[field]
-                    .strip()
-                    .lower()
-                    .replace("that ", "")
-                    .replace(" is ", " ")
-                    .replace(" my ", " ")
-                    .replace("’", "'")
-                    .replace("’s", "'s")
-                )
+        # Check if this memory already exists
+        existing = memory.recall(subject, relation)
+        is_duplicate = existing and str(value).lower() in [str(v).lower() for v in ([existing] if isinstance(existing, str) else existing)]
 
-        subject = data["subject"]
-        relation = data["relation"]
-        value = data["value"]
-
-        # --- check for duplicates using SQLite ---
-        existing_values = memory.recall(subject, relation)
-        if existing_values and (
-            (isinstance(existing_values, list) and value.lower() in [v.lower() for v in existing_values])
-            or (isinstance(existing_values, str) and value.lower() == existing_values.lower())
-        ):
-            msg = f"⚠️ Duplicate ignored: {subject} → {relation}: {value}"
-            return jsonify({"ok": True, "message": msg})
-
-        # --- save to SQLite ---
         memory.remember(subject, relation, value)
-        msg = f"✅ Remembered {subject} → {relation}: {value}"
+
+        msg = f"⚠️ Duplicate ignored: {subject} → {relation}: {value}" if is_duplicate else f"✅ Remembered {subject} → {relation}: {value}"
         return jsonify({"ok": True, "message": msg})
 
     except Exception as e:
         print(f"[MEM ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
 
