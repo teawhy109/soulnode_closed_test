@@ -1244,7 +1244,7 @@ def ask():
         # ----- REMEMBER -----
         if intent == "remember" and subj and rel and val:
             memory.remember(subj, rel, val)
-            memory._safe_write_json(memory.runtime_path, memory.memory)
+
             return jsonify({"ok": True, "answer": f"Got it. I’ll remember your {rel} is {val}."})
 
         # ----- RECALL -----
@@ -1334,8 +1334,11 @@ def mem_sanitize():
 def mem_status():
     """Return memory diagnostics and current stats."""
     try:
-        total_subjects = len(memory.memory)
-        total_facts = sum(len(v) for v in memory.memory.values())
+        # Use the SQLite export() method to get all stored facts
+        data = memory.export()
+        total_subjects = len(data)
+        total_facts = sum(len(v) for v in data.values())
+
         last_sweep = getattr(memory, "last_sweep", "N/A")
         write_count = getattr(memory, "write_count", "N/A")
 
@@ -1351,6 +1354,7 @@ def mem_status():
     except Exception as e:
         print(f"[MEM STATUS ERROR] {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
 @app.route("/mem/export", methods=["GET"])
