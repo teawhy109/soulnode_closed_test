@@ -633,16 +633,6 @@ def mem_recall(sub: str, rel: str) -> Optional[str]:
     except Exception:
         return None
 
-def mem_remember(sub: str, rel: str, val: str) -> None:
-    try:
-        store.remember(_norm_sub(sub), _best_rel_match(rel), (val or "").strip())
-        # try to persist safely if MemoryStore exposes save()
-        if hasattr(store, "save"):
-            try: store.save()
-            except Exception as e: print("store.save error:", e)
-    except Exception as e:
-        print("memory remember error:", e)
-
 def mem_forget(sub: str, rel: str) -> bool:
     try:
         ok = bool(store.forget(_norm_sub(sub), _best_rel_match(rel)))
