@@ -176,18 +176,19 @@ try:
         "mission": "To learn, heal, and help build New Chapter Media’s legacy.",
         "origin": "New Chapter Media Group",
         "type": "AI co-pilot"
-}
+    }
 
-    # Prevent redundant memory saves during preload
+    # Prevent redundant inserts during preload
     for key, val in preload_data.items():
-        if not memory.memory.get("solnode", {}).get(key):
-            memory.remember("solnode", key, val, silent=True)
+        existing = memory.recall("soulnode", key)
+        if not existing:
+            memory.remember("soulnode", key, val)
 
-    print("[Identity] ✅ SoulNode identity preloaded into memory (clean mode)")
-
+    print("[Identity] ✅ SoulNode identity preloaded into SQLite memory")
 
 except Exception as e:
     print(f"[Identity] ⚠️ Failed to preload SoulNode identity: {e}")
+
 
 
 
